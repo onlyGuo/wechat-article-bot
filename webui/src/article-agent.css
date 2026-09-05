@@ -1,0 +1,290 @@
+.tool-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 4px 0 15px;
+}
+
+.tool-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 15px;
+  padding: 9px 10px;
+  border: 1px solid #dfe8e3;
+  border-radius: 9px;
+  background: #f8faf8;
+  color: #52645b;
+}
+
+.tool-card.calling,
+.tool-card.preparing {
+  border-color: #cfe1d8;
+  background: #f2f8f5;
+}
+
+.tool-card.completed {
+  border-color: #d8e8df;
+  background: #f4f9f6;
+}
+
+.tool-card.failed {
+  border-color: #ecd5d1;
+  background: #fff7f5;
+  color: #a24b3f;
+}
+
+.tool-state {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: #277658;
+  background: #e2f0e9;
+}
+
+.tool-card.failed .tool-state {
+  color: #b54e42;
+  background: #f8e4e1;
+}
+
+.tool-card > div {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tool-card strong {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.tool-card small {
+  overflow: hidden;
+  color: #7b8a82;
+  font-size: 10px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-progress {
+  height: 3px;
+  overflow: hidden;
+  margin-top: 3px;
+  border-radius: 5px;
+  background: #dce8e1;
+}
+
+.tool-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #328162;
+  transition: width .18s ease;
+}
+
+.chat-attachments,.message-images{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 7px}.chat-attachments>span{width:48px;height:48px;position:relative}.chat-attachments img,.message-images img{width:48px;height:48px;border-radius:7px;object-fit:cover}.chat-attachments>span>button{position:absolute;right:-4px;top:-4px;width:17px;height:17px!important;border-radius:50%!important;background:#32483e!important;color:#fff;display:grid;place-items:center;padding:0}.message-images img{width:68px;height:68px}.chat-composer>div>.attach-button{margin-right:5px;background:#edf3ef;color:#37725a}.chat-composer>div>span{flex:1}
+
+.message-markdown{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}.message-markdown>:first-child{margin-top:0}.message-markdown>:last-child{margin-bottom:0}.message-markdown p{margin:0 0:.65em}.message-markdown ul,.message-markdown ol{margin:.45em 0 .7em;padding-left:1.5em}.message-markdown li+li{margin-top:.25em}.message-markdown h1,.message-markdown h2,.message-markdown h3{margin:.85em 0 .4em;line-height:1.4}.message-markdown h1{font-size:1.3em}.message-markdown h2{font-size:1.18em}.message-markdown h3{font-size:1.08em}.message-markdown blockquote{margin:.6em 0;padding:.35em .7em;border-left:3px solid #9bbbad;background:rgba(255,255,255,.45)}.message-markdown code{padding:.12em .32em;border-radius:4px;background:rgba(26,55,43,.08);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}.message-markdown pre{max-width:100%;overflow:auto;margin:.65em 0;padding:.7em;border-radius:7px;background:#24332d;color:#e9f1ed;white-space:pre}.message-markdown pre code{padding:0;background:none;color:inherit}.message-markdown a{color:#217455;text-decoration:underline}.message-markdown img{display:block;width:auto;max-width:100%;height:auto;max-height:280px;margin:.65em auto;border-radius:7px;object-fit:contain}.message-markdown table{display:block;max-width:100%;overflow-x:auto;border-collapse:collapse}.chat-message.user .message-markdown a{color:#d9fff0}.typing-caret{display:inline-block;width:2px;height:1em;margin-left:2px;vertical-align:-.12em;border-radius:2px;background:#43856a;animation:typing-blink .75s steps(1) infinite}@keyframes typing-blink{50%{opacity:0}}
+
+.asset-picker-modal>header p{margin-top:5px;color:#718078;font-size:12px}.asset-picker-actions{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;color:#7b8780;font-size:12px}.asset-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;max-height:54vh;overflow:auto;padding:2px}.asset-picker-grid button{min-width:0;padding:7px;border:1px solid #dfe4df;border-radius:10px;background:#fff;text-align:left;transition:.16s}.asset-picker-grid button:hover{border-color:#6ba58d;box-shadow:0 5px 16px rgba(31,122,90,.12);transform:translateY(-1px)}.asset-picker-grid img{display:block;width:100%;height:112px;border-radius:7px;background:#eef1ed;object-fit:cover}.asset-picker-grid span,.asset-picker-grid small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.asset-picker-grid span{margin:8px 2px 0;color:#34473e;font-size:11px;font-weight:600}.asset-picker-grid small{margin:3px 2px;color:#8a958e;font-size:9px}.asset-picker-loading{min-height:180px;display:flex;align-items:center;justify-content:center;gap:8px;color:#718078;font-size:12px}
+
+.wechat-progress-card {
+  position: fixed;
+  z-index: 85;
+  top: 92px;
+  right: 22px;
+  width: min(370px, calc(100vw - 32px));
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid #d7e5dd;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 18px 55px rgba(24, 55, 43, .2);
+  backdrop-filter: blur(16px);
+}
+
+.wechat-progress-card > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.wechat-progress-card > header > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.wechat-progress-card > header strong,
+.wechat-progress-card > header small {
+  display: block;
+}
+
+.wechat-progress-card > header strong {
+  color: #283d34;
+  font-size: 13px;
+}
+
+.wechat-progress-card > header small {
+  margin-top: 4px;
+  color: #718078;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.wechat-progress-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: #247558;
+  background: #e5f2eb;
+}
+
+.wechat-progress-card.success .wechat-progress-icon {
+  color: #fff;
+  background: #2b805f;
+}
+
+.wechat-progress-card.failed {
+  border-color: #edd3d0;
+}
+
+.wechat-progress-card.failed .wechat-progress-icon {
+  color: #fff;
+  background: #bd5349;
+}
+
+.wechat-progress-close {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  color: #819087;
+  background: transparent;
+}
+
+.wechat-progress-close:hover {
+  background: #f0f3f1;
+}
+
+.wechat-progress-track {
+  height: 6px;
+  overflow: hidden;
+  margin-top: 15px;
+  border-radius: 999px;
+  background: #e8eeea;
+}
+
+.wechat-progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2b7b5d, #63aa88);
+  box-shadow: 0 0 12px rgba(48, 135, 99, .35);
+  transition: width .35s ease;
+}
+
+.wechat-progress-card.failed .wechat-progress-track i {
+  background: #bd5349;
+  box-shadow: none;
+}
+
+.wechat-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin: 7px 1px 13px;
+  color: #849089;
+  font-size: 10px;
+}
+
+.wechat-progress-meta strong {
+  color: #39745d;
+}
+
+.wechat-progress-steps {
+  max-height: 215px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wechat-progress-steps > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 8px 9px;
+  border-radius: 9px;
+  background: #f5f8f6;
+}
+
+.wechat-progress-steps > div > span {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #34795e;
+  background: #e1eee7;
+}
+
+.wechat-progress-steps > div.failed > span {
+  color: #a9463f;
+  background: #f7e1de;
+}
+
+.wechat-progress-steps > div > div {
+  min-width: 0;
+}
+
+.wechat-progress-steps strong,
+.wechat-progress-steps small {
+  display: block;
+}
+
+.wechat-progress-steps strong {
+  color: #405249;
+  font-size: 10px;
+}
+
+.wechat-progress-steps small {
+  overflow: hidden;
+  margin-top: 2px;
+  color: #849089;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wechat-progress-enter-active,
+.wechat-progress-leave-active {
+  transition: opacity .2s ease, transform .25s ease;
+}
+
+.wechat-progress-enter-from,
+.wechat-progress-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(.98);
+}
+
+@media (max-width: 680px) {
+  .wechat-progress-card {
+    top: auto;
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    width: auto;
+  }
+}

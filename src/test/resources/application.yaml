@@ -1,0 +1,30 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${ENV.MYSQL_TEST_URL}
+    username: ${ENV.MYSQL_USERNAME}
+    password: ${ENV.MYSQL_PASSWORD}
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+      schema: classpath:db/quartz/schema-mysql.sql
+    properties:
+      org.quartz.scheduler.instanceName: WechatArticleSchedulerTest
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+      org.quartz.jobStore.isClustered: false
+      org.quartz.jobStore.useProperties: true
+  mybatis:
+    smart:
+      enabled: true
+      auto-sync-db: true
+app:
+  bootstrap:
+    admin-username: admin
+    admin-password: Admin@123
+  security:
+    secret-key: test-secret-key
+  storage:
+    path: ./target/test-uploads
