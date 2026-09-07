@@ -1,44 +1,262 @@
-# 墨舟 · 微信文章管理助手
+<div align="center">
 
-一个可运行的 Spring Boot + Vue 3 微信公众号内容工作台。系统覆盖公众号、文章、素材、公众号用户、后台用户和定时创作任务；文章编辑器支持人工富文本编辑与 AI 对话协同编辑。
+# Mozhou · AI WeChat Content Studio
 
-## 已实现能力
+**Turn research, writing, editing, review, scheduling, and WeChat publishing into one coherent workflow.**
 
-- 公众号管理：AppID/AppSecret 加密保存、连接检测、Access Token 缓存。
-- 文章管理：草稿/发布状态、搜索筛选、乐观锁、版本快照与回滚、软删除。
-- 智能编辑器：Tiptap 富文本编辑、自动保存、移动端预览；Agent4j Tool Calling 实时读取浏览器编辑区，通过读取、删除、流式插入、替换和元数据工具直接修改文章，聊天区同步展示工具过程，整轮完成后只生成一个文章版本。
-- 微信发布：封面素材上传、创建/更新微信草稿、提交发布、查询发布结果。
-- 定时创作 Agent：Quartz JDBC 持久化调度；每次按自然语言任务要求自主搜索、浏览和核实资料，调用素材库、网络图片、图片生成与编辑工具完成一篇新文章，并按配置保存本地草稿、同步微信草稿或自动发布；运行历史记录文章与工具调用过程。
-- 用户体系：后台账号、五级角色、Token 登录、密码重置；公众号粉丝同步和查询。
-- 系统设置：后台维护 LLM Base URL、模型和 API Key，API Key 加密入库；登录用户可修改自己的密码并使全部旧 Token 失效。
-- 运维能力：Smart MyBatis 表结构同步与数据访问、仪表盘、图片素材库、操作审计、网页访问 SSRF 防护。
+**🇬🇧 English** | [🇨🇳 简体中文](README_CN.md)
 
-## 本地启动
+`Java 17+` · `Spring Boot 4` · `Vue 3` · `MySQL 8` · `Docker` · `Agent4j`
 
-环境要求：JDK 17+、MySQL 8+、Node.js 20+。
+</div>
 
-先创建数据库：
+![Mozhou dashboard](docs/images/dashboard.png)
+
+## Why Mozhou?
+
+Publishing a strong WeChat article takes much more than generating a block of text. Research lives in browser tabs, AI drafts require repeated copy and paste, images and layouts need manual cleanup, multiple Official Accounts introduce credential and status sprawl, and scheduled jobs are difficult to inspect when something goes wrong.
+
+Mozhou brings that entire lifecycle into a self-hosted AI content operations studio:
+
+- **An editor-aware AI agent** — the agent reads the current document, targets logical blocks, streams insertions and replacements, and updates metadata or covers through explicit tools.
+- **One workflow from idea to WeChat** — manage accounts, articles, assets, drafts, publishing states, and followers without jumping between disconnected tools.
+- **Autonomous scheduled creation** — describe a recurring assignment in natural language and let the agent research, browse, verify, write, illustrate, and deliver it on schedule.
+- **Human control and traceability** — automatic saving, optimistic locking, revision snapshots, rollback, role-based access, execution history, and audit logs keep automation accountable.
+- **Your infrastructure, your credentials** — self-host the application, use your own model gateway, and keep WeChat secrets and LLM API keys encrypted in your database.
+
+## What it can do
+
+| Capability | What you get |
+| --- | --- |
+| Multiple Official Accounts | Centralized AppID/AppSecret, account type, default author and writing style, connection tests, and access-token caching. |
+| AI collaborative editor | Tiptap rich-text editing, autosave, mobile preview, and Agent4j Tool Calling that edits the live document instead of returning a detached draft. |
+| Assets and images | Local asset library, web-image import, AI image generation/editing, cover management, and automatic WeChat content-image upload. |
+| WeChat drafts and publishing | Create or update drafts, submit publishing jobs, refresh publishing results, and watch slow operations through real-time SSE progress. |
+| Scheduled content agents | Persistent Quartz JDBC schedules for one-time, interval, daily, weekly, monthly, yearly, and advanced Cron execution. |
+| Autonomous research | Search and browse sources, import media, preserve tool traces, and inspect every scheduled-agent run. |
+| Users and security | ADMIN / OPERATOR / EDITOR / REVIEWER / VIEWER roles, token authentication, password reset, expiry redirects, and audit logging. |
+| Follower synchronization | Synchronize and query Official Account followers as a foundation for future content operations and analytics. |
+
+## Product tour
+
+### See the complete content pipeline at a glance
+
+![Content operations dashboard](docs/images/dashboard.png)
+
+### Edit with an AI agent that shares the same document context
+
+![AI collaborative article editor](docs/images/ai-editor.png)
+
+### Manage Official Accounts and article lifecycles in one place
+
+<p align="center">
+  <img src="docs/images/accounts.png" alt="Official Account management" width="49%">
+  <img src="docs/images/articles.png" alt="Article management" width="49%">
+</p>
+
+### Let autonomous agents deliver on schedule
+
+<p align="center">
+  <img src="docs/images/scheduled-tasks.png" alt="Scheduled tasks" width="49%">
+  <img src="docs/images/schedule-editor.png" alt="Scheduled agent configuration" width="49%">
+</p>
+
+<details>
+<summary><strong>More screens: sign-in, Official Account setup, and system settings</strong></summary>
+
+![Sign-in page](docs/images/login.png)
+
+![Official Account setup](docs/images/account-settings.png)
+
+![LLM and system settings](docs/images/settings.png)
+
+</details>
+
+## Quick start with Docker (recommended)
+
+The fastest path is the published `linux/amd64` + `linux/arm64` image with Docker Compose running MySQL alongside the application.
+
+### 1. Prepare the environment
+
+```bash
+git clone https://github.com/onlyGuo/wechat-article-bot.git
+cd wechat-article-bot
+cp deploy/env/dev.env.example deploy/env/dev.env
+```
+
+Edit `deploy/env/dev.env` and replace at least these values:
+
+```dotenv
+MYSQL_PASSWORD=a-strong-database-password
+MYSQL_ROOT_PASSWORD=another-strong-password
+ADMIN_PASSWORD=your-first-login-password
+APP_SECRET_KEY=at-least-32-random-characters
+```
+
+Generate a strong encryption key with:
+
+```bash
+openssl rand -hex 32
+```
+
+> [!IMPORTANT]
+> `APP_SECRET_KEY` encrypts WeChat AppSecrets and LLM API keys. Keep it unchanged across restarts, migrations, and upgrades. Losing or replacing it makes previously stored secrets unreadable.
+
+### 2. Pull and start
+
+```bash
+docker compose --env-file deploy/env/dev.env \
+  -f compose.yaml -f compose.dev.yaml pull app mysql
+
+docker compose --env-file deploy/env/dev.env \
+  -f compose.yaml -f compose.dev.yaml up --no-build -d
+```
+
+Inspect the deployment:
+
+```bash
+docker compose --env-file deploy/env/dev.env \
+  -f compose.yaml -f compose.dev.yaml ps
+
+docker compose --env-file deploy/env/dev.env \
+  -f compose.yaml -f compose.dev.yaml logs -f app
+```
+
+Open <http://localhost:8081>. The default username is `admin`; the password is the value you set in `ADMIN_PASSWORD`.
+
+![Mozhou sign-in page](docs/images/login.png)
+
+### 3. Stop or upgrade
+
+```bash
+# Stop while preserving database and upload volumes
+docker compose --env-file deploy/env/dev.env \
+  -f compose.yaml -f compose.dev.yaml down
+
+# Upgrade: change IMAGE_TAG first, then run
+docker compose --env-file deploy/env/dev.env \
+  -f compose.yaml -f compose.dev.yaml pull app
+docker compose --env-file deploy/env/dev.env \
+  -f compose.yaml -f compose.dev.yaml up --no-build -d
+```
+
+`down` preserves the MySQL and upload volumes. Do not use `down -v` unless you intentionally want to erase that data.
+
+## First-run configuration
+
+### Step 1: change the administrator password
+
+After signing in, open **System Settings → Change Login Password**. Changing a password invalidates every previously issued token for that user.
+
+### Step 2: configure the LLM service
+
+Open **System Settings → LLM Service** and configure:
+
+1. **Protocol**
+   - Choose `Responses / Codex` for OpenAI Responses-compatible services and Codex models.
+   - Choose `Chat Completions` for OpenAI-compatible chat endpoints.
+   - Choose `Anthropic Messages` for native Claude endpoints.
+2. **Base URL** — enter the service root only; do not append `/v1/responses`, `/chat/completions`, or `/messages`.
+3. **Model and API key** — both must match the selected provider.
+4. **Image model** — configure it if agents should generate or edit images. Its Base URL and key can be independent, or the key can reuse the LLM credential.
+
+![LLM configuration](docs/images/settings.png)
+
+### Step 3: connect a WeChat Official Account
+
+Open **Official Accounts → Add Official Account** and enter the name, account type, AppID, AppSecret, original ID, default author, and preferred writing style. Save it, then select **Test Connection**.
+
+![Official Account configuration](docs/images/account-settings.png)
+
+Before testing, make sure:
+
+- The account has the required draft, publishing, material, or follower API permissions.
+- The server's outbound IP is present in the WeChat Official Platform allowlist.
+- The server time and timezone are correct and it can reach the WeChat APIs.
+
+### Step 4: produce the first article
+
+1. Upload a cover and content images in **Assets**, or upload them from the editor.
+2. Create an article, then select its target Official Account and cover.
+3. Tell the Mozhou agent the topic, audience, tone, and editing requirements.
+4. Use **Preview**, then **Sync Draft**. A cover is required before WeChat draft synchronization.
+5. Review the result in WeChat and let a user with publishing permission submit it.
+
+### Step 5: create a scheduled content agent
+
+Open **Scheduled Tasks → New Task**, select a timezone and schedule, then describe in natural language:
+
+- The freshness window, trusted sources, and facts that must be verified.
+- The target reader, topic boundary, structure, tone, and length.
+- The cover and inline-image strategy.
+- Whether the result should remain a local draft, sync to WeChat drafts, or submit for publishing.
+
+Run the task once with **Run Now** before enabling the schedule. Review its research, tool calls, output, and errors in the execution history.
+
+![Scheduled content agent](docs/images/schedule-editor.png)
+
+## Production deployment
+
+For production, use a dedicated MySQL 8 instance and place an HTTPS reverse proxy in front of the application.
+
+```bash
+cp deploy/env/prod.env.example deploy/env/prod.env
+# Set the database URL, passwords, APP_SECRET_KEY, and IMAGE_TAG
+
+docker compose --env-file deploy/env/prod.env \
+  -f compose.yaml -f compose.prod.yaml pull
+
+docker compose --env-file deploy/env/prod.env \
+  -f compose.yaml -f compose.prod.yaml up -d
+```
+
+The production override enables a read-only root filesystem, drops Linux capabilities, prevents privilege escalation, and applies CPU/memory boundaries. Uploaded assets live in the `uploads_data` volume. Back up both that volume and MySQL before every upgrade.
+
+## Environment variables
+
+| Variable | Purpose | Production guidance |
+| --- | --- | --- |
+| `IMAGE_REPOSITORY` | Container image repository | Use `docker.io/guoshengkai/wechat-article-bot` for the published image. |
+| `IMAGE_TAG` | Image version | Pin a release version instead of relying only on `latest`. |
+| `MYSQL_URL` | JDBC connection URL | Enable TLS and restrict network access. |
+| `MYSQL_USERNAME` / `MYSQL_PASSWORD` | Application database account | Use a dedicated least-privilege account. |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Bootstrap administrator | Used for initialization; change the password after first login. |
+| `APP_SECRET_KEY` | Master key for stored credentials | Use a random value of at least 32 characters and preserve it permanently. |
+| `TOKEN_TTL_HOURS` | Back-office login lifetime | Set according to your organization's security policy. |
+| `STORAGE_PATH` | Image asset directory | Mount persistent storage and back it up regularly. |
+| `JAVA_TOOL_OPTIONS` | JVM memory, encoding, and timezone | Tune `MaxRAMPercentage` for the container limit. |
+
+## macOS Apple Container
+
+On macOS 26, Apple's native `container` CLI can build, run, and publish OCI images without Docker Desktop:
+
+```bash
+container system start
+container build --arch arm64 --tag wechat-article-bot:local --file Dockerfile .
+cp deploy/env/native.env.example deploy/env/native.env
+container volume create wechat-article-uploads
+container run --rm --publish 8081:8081 \
+  --volume wechat-article-uploads:/app/data/uploads \
+  --env-file deploy/env/native.env wechat-article-bot:local
+```
+
+Apple `container` does not currently include Compose. Multi-container environments require manually combining networks, volumes, and multiple `container run` commands. Docker Compose remains the recommended full local stack.
+
+## Run from source
+
+Requirements: JDK 17+, MySQL 8+, and Node.js 20+.
 
 ```sql
 CREATE DATABASE `wechat-article` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-配置环境变量：
-
 ```bash
 cp .env.example .env
-# 修改 .env 中的数据库密码、管理员密码和 APP_SECRET_KEY
-```
-
-应用会直接导入项目根目录的 `.env`，不需要在 Shell 中 `source`。其中需要同时配置业务库 `ENV.MYSQL_URL` 和专用测试库 `ENV.MYSQL_TEST_URL`。测试库名称固定为 `wechat-article-test`，测试启动前会校验库名并清空该库；任何非测试库都会被安全检查拒绝。
-
-启动后端（Smart MyBatis 会根据实体自动同步业务表；Quartz 会初始化自己的 JDBC 表）：
-
-```bash
+# Configure the application database, test database, administrator, and APP_SECRET_KEY
 ./mvnw spring-boot:run
 ```
 
-另开终端启动前端：
+In another terminal:
 
 ```bash
 cd webui
@@ -46,23 +264,32 @@ npm install
 npm run dev
 ```
 
-访问 `http://localhost:5173`。默认开发账号为 `admin / Admin@123`；如果设置了 `ADMIN_PASSWORD`，请使用环境变量中的密码。首次登录后应立即进入“系统设置”修改密码。
+Open <http://localhost:5173>. Vite proxies `/api` and `/uploads` to `http://localhost:8081`.
 
-## AI 与微信配置
-
-登录后进入“系统设置”，配置 Base URL、模型与 API Key，并选择 Chat Completions、Responses / Codex 或 Anthropic Messages 协议。Codex 专用模型选择 Responses / Codex，Claude 原生接口选择 Anthropic Messages。配置持久化在数据库中，API Key 使用 `APP_SECRET_KEY` 加密，YAML 和环境变量中不保存 LLM 参数。未配置或未启用时，普通手工编辑仍可使用，AI 编辑和定时创作任务会明确提示需要先配置 LLM。
-
-微信功能需要在“公众号管理”中录入有效的 AppID/AppSecret，并在微信公众平台配置服务器出口 IP 白名单。同步微信草稿或自动发布的任务必须选择公众号；封面可以预先指定，也可以由 Agent 在执行时从素材库选择、从网页导入或生成。
-
-## 验证命令
+## Verification
 
 ```bash
 ./mvnw test
 cd webui && npm run build
 ```
 
-后端测试只使用真实 MySQL，不包含 H2 或 MySQL 兼容模式。Smart MyBatis 会在空测试库中从实体同步业务表，以此验证实体元数据和实际 MySQL DDL。
+Backend integration tests use a real MySQL server rather than H2 compatibility mode. `ENV.MYSQL_TEST_URL` must point to a dedicated database named `wechat-article-test`; the test bootstrap validates that name before clearing it.
 
-后端接口统一位于 `/api`，开发环境由 Vite 代理到 `http://localhost:8081`。上传图片保存在 `STORAGE_PATH`，并通过 `/uploads/**` 访问。
+## Technology stack
 
-业务 Mapper 全部继承 `SmartMapper`，组合查询由 Mapper 的 `default` 方法和 Smart MyBatis `Where` DSL 实现，业务表结构也由 Smart MyBatis 自动同步。Quartz 使用同一数据源中的 `QRTZ_*` 表保存 Job、Trigger 和集群状态，应用重启后任务仍可恢复。
+- **Backend:** Java 17, Spring Boot 4.1, Spring Security, Smart MyBatis, Quartz JDBC, and Agent4j.
+- **Frontend:** Vue 3, Vite, Pinia, Tiptap, DOMPurify, and SSE.
+- **Storage:** MySQL 8 plus local or mounted file storage.
+- **Integrations:** WeChat Official Platform APIs, OpenAI-compatible Responses / Chat Completions, Anthropic Messages, and image-generation services.
+
+## Security and operations checklist
+
+- Never commit `.env` or `deploy/env/*.env` files.
+- Put the application behind HTTPS and expose only required ports.
+- Back up MySQL and the upload volume regularly and before upgrades.
+- Rotate LLM and WeChat credentials when required, but do not casually replace `APP_SECRET_KEY`.
+- Validate scheduled agents in local-draft or WeChat-draft mode before allowing automatic publishing.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).

@@ -1,6 +1,7 @@
 HELP.md
 target/
 .env
+deploy/env/*.env
 data/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

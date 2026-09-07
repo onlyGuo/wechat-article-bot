@@ -1,0 +1,35 @@
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+      args:
+        APP_VERSION: ${IMAGE_TAG:-dev}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ENV.MYSQL_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-wechat-article}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+
+  mysql:
+    image: mysql:8.4
+    ports:
+      - "${MYSQL_BIND_ADDRESS:-127.0.0.1}:${MYSQL_PORT:-3306}:3306"
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-wechat-article}
+      MYSQL_USER: ${MYSQL_USERNAME:?MYSQL_USERNAME is required}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  mysql_data:

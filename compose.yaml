@@ -1,0 +1,26 @@
+name: wechat-article-bot
+
+services:
+  app:
+    image: ${IMAGE_REPOSITORY:-wechat-article-bot}:${IMAGE_TAG:-local}
+    ports:
+      - "${APP_BIND_ADDRESS:-0.0.0.0}:${APP_PORT:-8081}:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      ENV.MYSQL_URL: ${MYSQL_URL:?MYSQL_URL is required}
+      ENV.MYSQL_USERNAME: ${MYSQL_USERNAME:?MYSQL_USERNAME is required}
+      ENV.MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
+      APP_SECRET_KEY: ${APP_SECRET_KEY:?APP_SECRET_KEY is required}
+      TOKEN_TTL_HOURS: ${TOKEN_TTL_HOURS:-24}
+      STORAGE_PATH: /app/data/uploads
+      SERVER_PORT: 8081
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75.0 -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai}
+    volumes:
+      - uploads_data:/app/data/uploads
+    restart: ${RESTART_POLICY:-unless-stopped}
+    stop_grace_period: 30s
+
+volumes:
+  uploads_data:
