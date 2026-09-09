@@ -2,6 +2,7 @@ package ink.icoding.wechat.article.schedule;
 
 import ink.icoding.wechat.article.auth.CurrentUserService;
 import ink.icoding.wechat.article.common.BusinessException;
+import ink.icoding.wechat.article.skill.ArticleSkillService;
 import jakarta.validation.constraints.NotBlank;
 import org.quartz.CronExpression;
 import org.springframework.stereotype.Service;
@@ -19,14 +20,17 @@ public class ScheduleTaskService {
     private final QuartzTaskManager quartz;
     private final TaskExecutionService executionService;
     private final CurrentUserService currentUserService;
+    private final ArticleSkillService skillService;
 
     public ScheduleTaskService(ScheduleTaskMapper mapper, TaskRunMapper runMapper, QuartzTaskManager quartz,
-                               TaskExecutionService executionService, CurrentUserService currentUserService) {
+                               TaskExecutionService executionService, CurrentUserService currentUserService,
+                               ArticleSkillService skillService) {
         this.mapper = mapper;
         this.runMapper = runMapper;
         this.quartz = quartz;
         this.executionService = executionService;
         this.currentUserService = currentUserService;
+        this.skillService = skillService;
     }
 
     public List<ScheduleTask> list() { return mapper.findAll(); }
@@ -77,6 +81,8 @@ public class ScheduleTaskService {
         if (!CronExpression.isValidExpression(request.cronExpression())) throw new BusinessException("Cron 表达式无效");
         task.setName(request.name());
         task.setAccountId(request.accountId());
+        if (!java.util.Objects.equals(task.getSkillId(), request.skillId())) skillService.validateSelection(request.skillId());
+        task.setSkillId(request.skillId());
         task.setCoverAssetId(request.coverAssetId());
         task.setCronExpression(request.cronExpression());
         task.setTimezone(request.timezone() == null ? "Asia/Shanghai" : request.timezone());
@@ -109,5 +115,5 @@ public class ScheduleTaskService {
 
     public record TaskRequest(@NotBlank String name, Long accountId, Long coverAssetId, @NotBlank String cronExpression,
                               String timezone, @NotBlank String aiPrompt,
-                              String outputMode, Boolean enabled) {}
+                              String outputMode, Boolean enabled, Long skillId) {}
 }

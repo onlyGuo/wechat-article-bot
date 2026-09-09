@@ -6,7 +6,6 @@ import ink.icoding.llm.core.tool.Tool;
 import ink.icoding.llm.core.tool.ToolParam;
 import ink.icoding.llm.core.tool.annotations.Param;
 import ink.icoding.llm.core.tool.annotations.ToolInfo;
-import ink.icoding.wechat.article.article.ArticleContentPolicy;
 import lombok.Data;
 
 import java.util.List;
@@ -86,13 +85,13 @@ public final class ArticleEditorTools {
         private Long expectedDocumentVersion;
     }
 
-    @ToolInfo(name = "insert_blocks", description = "在指定逻辑行之前或之后插入一个或多个完整HTML内容块。blocks中的每项必须是完整的p、h2、h3、blockquote、hr或figure元素。创作正文时禁止使用列表和表格。")
+    @ToolInfo(name = "insert_blocks", description = "在指定逻辑行之前或之后插入一个或多个完整HTML内容块。blocks中的每项是一个完整HTML顶层节点，结构和样式由所选Skill与用户要求决定，支持列表、表格、SVG及style标签。")
     public static class InsertBlocksTool implements Tool<InsertBlocksParam> {
         private final BrowserExecutor executor;
         public InsertBlocksTool(BrowserExecutor executor) { this.executor = executor; }
         @Override
         public String execute(InsertBlocksParam param) {
-            requireParagraphProse(param.getBlocks());
+            requireBlocks(param.getBlocks());
             return executeInBrowser(executor, "insert_blocks", param);
         }
     }
@@ -109,13 +108,13 @@ public final class ArticleEditorTools {
         private Long expectedDocumentVersion;
     }
 
-    @ToolInfo(name = "replace_blocks", description = "原子替换连续逻辑行，适合改写已有段落。blocks中的每项必须是完整HTML内容块，创作正文时禁止使用列表和表格。")
+    @ToolInfo(name = "replace_blocks", description = "原子替换连续逻辑行，适合改写已有段落。blocks中的每项必须是完整HTML内容块，结构和样式由所选Skill与用户要求决定。")
     public static class ReplaceBlocksTool implements Tool<ReplaceBlocksParam> {
         private final BrowserExecutor executor;
         public ReplaceBlocksTool(BrowserExecutor executor) { this.executor = executor; }
         @Override
         public String execute(ReplaceBlocksParam param) {
-            requireParagraphProse(param.getBlocks());
+            requireBlocks(param.getBlocks());
             return executeInBrowser(executor, "replace_blocks", param);
         }
     }
@@ -182,8 +181,9 @@ public final class ArticleEditorTools {
         }
     }
 
-    private static void requireParagraphProse(String[] blocks) {
-        if (blocks == null) return;
-        ArticleContentPolicy.requireParagraphProse(String.join("", blocks));
+    private static void requireBlocks(String[] blocks) {
+        if (blocks == null || blocks.length == 0 || java.util.Arrays.stream(blocks).anyMatch(block -> block == null || block.isBlank())) {
+            throw new IllegalArgumentException("请提供至少一个非空 HTML 内容块");
+        }
     }
 }

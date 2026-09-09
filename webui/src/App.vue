@@ -17,6 +17,7 @@ const items = [
   { to: '/', label: '工作台', icon: LayoutDashboard },
   { to: '/accounts', label: '公众号管理', icon: Radio },
   { to: '/articles', label: '文章管理', icon: FileText },
+  { to: '/skills', label: 'Skill 管理', icon: Sparkles },
   { to: '/tasks', label: '定时任务', icon: Bot },
   { to: '/followers', label: '公众号用户', icon: Users },
   { to: '/system-users', label: '系统用户', icon: UserCog },

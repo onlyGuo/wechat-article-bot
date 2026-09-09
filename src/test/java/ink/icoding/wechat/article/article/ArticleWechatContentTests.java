@@ -5,6 +5,7 @@ import ink.icoding.wechat.article.account.WechatAccountService;
 import ink.icoding.wechat.article.asset.AssetService;
 import ink.icoding.wechat.article.auth.CurrentUserService;
 import ink.icoding.wechat.article.wechat.WechatClient;
+import ink.icoding.wechat.article.skill.ArticleSkillService;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ class ArticleWechatContentTests {
 
         assertEquals(2, content.split("https://mmbiz.qpic.cn/wechat-image", -1).length - 1);
         assertTrue(content.contains("alt=\"配图\""));
-        assertEquals(3, content.split("margin-bottom: 16px", -1).length - 1);
+        assertEquals(0, content.split("margin-bottom: 16px", -1).length - 1);
         verify(assetService, times(1)).ensureWechatContentImage(STORAGE_NAME, 5L);
     }
 
@@ -67,7 +68,7 @@ class ArticleWechatContentTests {
         when(accountService.required(5L)).thenReturn(new WechatAccount());
         when(wechatClient.addDraft(eq(5L), anyMap())).thenReturn("draft-media-id");
         ArticleService service = new ArticleService(mapper, mock(ArticleRevisionMapper.class),
-                mock(CurrentUserService.class), assetService, accountService, wechatClient);
+                mock(CurrentUserService.class), assetService, accountService, wechatClient, mock(ArticleSkillService.class));
         List<ArticleService.WechatProgress> events = new ArrayList<>();
 
         service.syncDraft(1L, events::add);
@@ -87,7 +88,7 @@ class ArticleWechatContentTests {
         when(wechatClient.publish(5L, "existing-draft-id")).thenReturn("publish-id");
         ArticleService service = new ArticleService(mapper, mock(ArticleRevisionMapper.class),
                 mock(CurrentUserService.class), mock(AssetService.class), mock(WechatAccountService.class),
-                wechatClient);
+                wechatClient, mock(ArticleSkillService.class));
         List<ArticleService.WechatProgress> events = new ArrayList<>();
 
         service.publish(1L, events::add);
@@ -112,6 +113,6 @@ class ArticleWechatContentTests {
     private ArticleService service(AssetService assetService) {
         return new ArticleService(mock(ArticleMapper.class), mock(ArticleRevisionMapper.class),
                 mock(CurrentUserService.class), assetService, mock(WechatAccountService.class),
-                mock(WechatClient.class));
+                mock(WechatClient.class), mock(ArticleSkillService.class));
     }
 }

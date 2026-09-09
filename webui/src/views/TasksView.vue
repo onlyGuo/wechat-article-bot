@@ -7,15 +7,15 @@ import CronBuilder from '../components/CronBuilder.vue'
 import { describeQuartzCron } from '../utils/cron'
 
 const router=useRouter()
-const tasks=ref([]),accounts=ref([]),assets=ref([]),error=ref(''),notice=ref(''),showForm=ref(false),showRuns=ref(false),runs=ref([]),selected=ref(null),running=ref(null)
+const skills=ref([]),tasks=ref([]),accounts=ref([]),assets=ref([]),error=ref(''),notice=ref(''),showForm=ref(false),showRuns=ref(false),runs=ref([]),selected=ref(null),running=ref(null)
 const defaultInstruction=`每天检索并浏览过去24小时内值得关注的 AI 产品与行业动态，优先阅读官方公告和可靠媒体来源。选择一个最适合公众号读者的主题，核实关键事实后，整理成一篇观点清晰、结构完整、适合手机阅读的原创文章。正文末尾列出主要参考来源；需要时从素材库选择或生成合适的封面和正文配图。`
-const blank=()=>({id:null,name:'',accountId:null,coverAssetId:null,cronExpression:'0 0 9 * * ?',timezone:'Asia/Shanghai',aiPrompt:defaultInstruction,outputMode:'LOCAL_DRAFT',enabled:true})
+const blank=()=>({id:null,name:'',accountId:null,skillId:null,coverAssetId:null,cronExpression:'0 0 9 * * ?',timezone:'Asia/Shanghai',aiPrompt:defaultInstruction,outputMode:'LOCAL_DRAFT',enabled:true})
 const form=reactive(blank())
 let runPoller=null
 const outputLabel=value=>({LOCAL_DRAFT:'保存本地草稿',WECHAT_DRAFT:'同步微信草稿',AUTO_PUBLISH:'自动发布公众号'}[value]||value)
 const fmt=value=>value?new Date(value).toLocaleString('zh-CN'):'尚未运行'
 
-async function load(){try{[tasks.value,accounts.value,assets.value]=await Promise.all([api('/api/tasks'),api('/api/accounts'),api('/api/assets')])}catch(e){error.value=e.message}}
+async function load(){try{[tasks.value,accounts.value,assets.value,skills.value]=await Promise.all([api('/api/tasks'),api('/api/accounts'),api('/api/assets'),api('/api/skills')])}catch(e){error.value=e.message}}
 function open(task){Object.assign(form,blank(),task||{});showForm.value=true;error.value=''}
 async function save(){try{await api(form.id?`/api/tasks/${form.id}`:'/api/tasks',{method:form.id?'PUT':'POST',body:JSON.stringify(form)});showForm.value=false;notice.value='定时创作任务已保存';await load()}catch(e){error.value=e.message}}
 async function run(task){if(running.value)return;running.value=task.id;error.value='';notice.value='';try{const result=await api(`/api/tasks/${task.id}/run`,{method:'POST'});notice.value=`任务已在后台启动，运行记录 #${result.id}`;await load()}catch(e){error.value=e.message}finally{running.value=null}}
@@ -53,6 +53,7 @@ onBeforeUnmount(stopRunPolling)
       <div class="full schedule-builder-field"><span>执行计划</span><CronBuilder v-model="form.cronExpression" /></div>
       <label>完成后的动作<select v-model="form.outputMode"><option value="LOCAL_DRAFT">保存为本地草稿</option><option value="WECHAT_DRAFT">同步到微信公众号草稿箱</option><option value="AUTO_PUBLISH">自动发布到公众号</option></select></label>
       <label>默认封面（可选）<select v-model="form.coverAssetId"><option :value="null">由 Agent 自行选择或生成</option><option v-for="asset in assets" :key="asset.id" :value="asset.id">{{asset.originalName}}</option></select></label>
+      <label class="full">文章 Skill<select v-model="form.skillId"><option :value="null">跟随默认 Skill（{{skills.find(s=>s.isDefault)?.name}}）</option><option v-if="form.skillId&&!skills.some(s=>s.id===form.skillId)" :value="form.skillId">原 Skill 已删除 · 使用默认</option><option v-for="skill in skills" :key="skill.id" :value="skill.id">{{skill.name}}</option></select><small>控制文章风格、排版与样式，未指定时使用当前默认 Skill。</small></label>
       <label class="full">每次执行的完整要求<textarea v-model="form.aiPrompt" required rows="10" placeholder="描述要关注的领域、时间范围、资料要求、读者、文章风格、结构、配图和事实核验要求。"></textarea><small>Agent 会据此自主使用网页搜索、内容浏览、素材库和图片工具，并且每次只创作一篇新文章。</small></label>
       <label class="checkbox full"><input v-model="form.enabled" type="checkbox">保存后启用 Quartz 调度</label>
     </div><div class="form-actions"><button type="button" class="secondary-button" @click="showForm=false">取消</button><button class="primary-button">保存任务</button></div></form></div>

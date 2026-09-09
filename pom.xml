@@ -10,7 +10,7 @@
     </parent>
     <groupId>ink.icoding.wechat</groupId>
     <artifactId>article-bot</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.1.0</version>
     <name>wechat-article-bot</name>
     <description>wechat-article-bot</description>
     <url/>

@@ -7,6 +7,7 @@ const routes = [
   { path: '/accounts', name: 'accounts', component: () => import('./views/AccountsView.vue'), meta: { title: '公众号管理' } },
   { path: '/articles', name: 'articles', component: () => import('./views/ArticlesView.vue'), meta: { title: '文章管理' } },
   { path: '/articles/:id', name: 'editor', component: () => import('./views/ArticleEditorView.vue'), meta: { title: '智能文章编辑器', editor: true } },
+  { path: '/skills', name: 'skills', component: () => import('./views/SkillsView.vue'), meta: { title: 'Skill 管理' } },
   { path: '/tasks', name: 'tasks', component: () => import('./views/TasksView.vue'), meta: { title: '定时任务' } },
   { path: '/followers', name: 'followers', component: () => import('./views/FollowersView.vue'), meta: { title: '公众号用户' } },
   { path: '/system-users', name: 'system-users', component: () => import('./views/SystemUsersView.vue'), meta: { title: '系统用户' } },

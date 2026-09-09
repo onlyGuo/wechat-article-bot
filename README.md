@@ -29,7 +29,8 @@ Mozhou brings that entire lifecycle into a self-hosted AI content operations stu
 | Capability | What you get |
 | --- | --- |
 | Multiple Official Accounts | Centralized AppID/AppSecret, account type, default author and writing style, connection tests, and access-token caching. |
-| AI collaborative editor | Tiptap rich-text editing, autosave, mobile preview, and Agent4j Tool Calling that edits the live document instead of returning a detached draft. |
+| AI collaborative editor | HTML/CSS-preserving visual and source editing, autosave, isolated mobile preview, and Agent4j Tool Calling that edits the live document instead of returning a detached draft. |
+| Article Skills | Create, view, search, edit, delete and choose reusable writing/layout/style instructions for articles and scheduled tasks; editable default template migrated from the original prompt. |
 | Assets and images | Local asset library, web-image import, AI image generation/editing, cover management, and automatic WeChat content-image upload. |
 | WeChat drafts and publishing | Create or update drafts, submit publishing jobs, refresh publishing results, and watch slow operations through real-time SSE progress. |
 | Scheduled content agents | Persistent Quartz JDBC schedules for one-time, interval, daily, weekly, monthly, yearly, and advanced Cron execution. |
@@ -278,7 +279,7 @@ Backend integration tests use a real MySQL server rather than H2 compatibility m
 ## Technology stack
 
 - **Backend:** Java 17, Spring Boot 4.1, Spring Security, Smart MyBatis, Quartz JDBC, and Agent4j.
-- **Frontend:** Vue 3, Vite, Pinia, Tiptap, DOMPurify, and SSE.
+- **Frontend:** Vue 3, Vite, Pinia, isolated HTML/CSS editing, DOMPurify for chat Markdown, and SSE.
 - **Storage:** MySQL 8 plus local or mounted file storage.
 - **Integrations:** WeChat Official Platform APIs, OpenAI-compatible Responses / Chat Completions, Anthropic Messages, and image-generation services.
 

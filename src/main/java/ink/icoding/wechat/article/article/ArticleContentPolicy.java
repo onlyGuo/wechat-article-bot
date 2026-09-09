@@ -3,31 +3,47 @@ package ink.icoding.wechat.article.article;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import java.util.Locale;
+import java.util.Set;
 
+/** Content safety is independent of layout: preserve CSS, SVG and non-executable markup. */
 public final class ArticleContentPolicy {
-    private static final String FORBIDDEN_GENERATED_ELEMENTS = "ul, ol, dl, table";
-    private static final String WECHAT_PARAGRAPH_SPACING = "margin-bottom: 16px;";
+    private static final Set<String> URL_ATTRIBUTES = Set.of("href", "src", "xlink:href", "action", "formaction", "poster", "background");
+    private ArticleContentPolicy() {}
 
-    private ArticleContentPolicy() {
+    public static String sanitize(String html) {
+        if (html == null || html.isBlank()) return "<p></p>";
+        Document document = Jsoup.parseBodyFragment(html);
+        document.outputSettings().prettyPrint(false);
+        document.select("script,iframe,object,embed,base,meta,frame,frameset,applet").remove();
+        for (Element element : document.getAllElements()) {
+            String animatedAttribute = element.attr("attributeName").toLowerCase(Locale.ROOT);
+            if (Set.of("animate", "set", "animatemotion", "animatetransform").contains(element.normalName())
+                    && (URL_ATTRIBUTES.contains(animatedAttribute) || animatedAttribute.startsWith("on") || animatedAttribute.equals("srcdoc"))) {
+                element.remove();
+                continue;
+            }
+            for (var attribute : element.attributes().asList()) {
+                String name = attribute.getKey().toLowerCase(Locale.ROOT);
+                if (name.startsWith("on") || name.equals("srcdoc") || name.equals("contenteditable")
+                        || (URL_ATTRIBUTES.contains(name) && !safeUrl(attribute.getValue()))) {
+                    element.removeAttr(attribute.getKey());
+                }
+            }
+        }
+        return document.body().html();
     }
 
-    public static void requireParagraphProse(String html) {
-        if (html == null || html.isBlank()) return;
-        Document document = Jsoup.parseBodyFragment(html);
-        if (!document.select(FORBIDDEN_GENERATED_ELEMENTS).isEmpty()) {
-            throw new IllegalArgumentException("文章正文不要使用列表或表格，请改用标题和自然段连续表达");
-        }
+    private static boolean safeUrl(String value) {
+        String normalized = value.replaceAll("[\\p{Cntrl}\\s]+", "").toLowerCase(Locale.ROOT);
+        if (normalized.startsWith("data:")) return normalized.startsWith("data:image/");
+        if (!normalized.matches("^[a-z][a-z0-9+.-]*:.*")) return true;
+        int colon = normalized.indexOf(':');
+        return Set.of("http", "https", "mailto", "tel").contains(normalized.substring(0, colon));
     }
 
     public static String formatForWechat(String html) {
-        if (html == null || html.isBlank()) return "<p style=\"margin-bottom: 16px;\"></p>";
-        Document document = Jsoup.parseBodyFragment(html);
-        document.outputSettings().prettyPrint(false);
-        for (Element paragraph : document.select("p")) {
-            String style = paragraph.attr("style").trim();
-            if (!style.isEmpty() && !style.endsWith(";")) style += ";";
-            paragraph.attr("style", (style.isEmpty() ? "" : style + " ") + WECHAT_PARAGRAPH_SPACING);
-        }
-        return document.body().html();
+        // WeChat may apply its own rendering rules; preserve the author's spacing and style here.
+        return sanitize(html);
     }
 }

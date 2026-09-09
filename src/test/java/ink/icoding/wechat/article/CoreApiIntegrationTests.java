@@ -42,6 +42,7 @@ class CoreApiIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;
+    private Long testSkillId;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -76,6 +77,7 @@ class CoreApiIntegrationTests {
         Matcher matcher = TOKEN.matcher(loginJson);
         if (!matcher.find()) throw new AssertionError("登录响应中缺少 token");
         String authorization = "Bearer " + matcher.group(1);
+        verifySkillManagement(authorization);
 
         mockMvc.perform(post("/api/articles")
                         .header("Authorization", authorization)
@@ -211,20 +213,23 @@ class CoreApiIntegrationTests {
                         .content("""
                                 {
                                   "name": "持久化调度验收",
+                                  "skillId": %d,
                                   "cronExpression": "0 0 12 * * ?",
                                   "timezone": "Asia/Shanghai",
                                   "aiPrompt": "每天搜索并浏览人工智能行业动态，核实来源后创作一篇公众号文章。",
                                   "outputMode": "LOCAL_DRAFT",
                                   "enabled": true
                                 }
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.name").value("持久化调度验收"));
+                                """.formatted(testSkillId)))                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("持久化调度验收"))
+                .andExpect(jsonPath("$.data.skillId").value(testSkillId));
 
         Long persistedJobs = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM QRTZ_JOB_DETAILS", Long.class);
         if (persistedJobs == null || persistedJobs < 1) throw new AssertionError("Quartz 任务没有持久化到数据库");
 
+        mockMvc.perform(post("/api/skills/1/default").header("Authorization", authorization)).andExpect(status().isOk());
         verifyScheduledAgentToolCalling(authorization);
+        verifySkillSelectionAndDeletion(authorization);
 
         mockMvc.perform(put("/api/auth/password")
                         .header("Authorization", authorization)
@@ -242,6 +247,60 @@ class CoreApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
+
+
+    private void verifySkillManagement(String authorization) throws Exception {
+        mockMvc.perform(get("/api/skills")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/skills").header("Authorization", authorization))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].isDefault").value(true));
+        mockMvc.perform(get("/api/skills/1").header("Authorization", authorization))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.content").value(org.hamcrest.Matchers.containsString("#07C160")));
+        mockMvc.perform(post("/api/skills").header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"name":"杂志风格","description":"自由布局验收","content":"SKILL_MAGAZINE 使用紫色网格布局，支持SVG、列表和表格"}
+                                """))
+                .andExpect(status().isOk());
+        testSkillId = jdbcTemplate.queryForObject("SELECT id FROM ARTICLE_SKILL WHERE name = '杂志风格'", Long.class);
+        mockMvc.perform(post("/api/skills/" + testSkillId + "/default").header("Authorization", authorization))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.isDefault").value(true));
+        org.junit.jupiter.api.Assertions.assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM ARTICLE_SKILL WHERE is_default = true AND deleted = false", Integer.class));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/skills/" + testSkillId)
+                        .header("Authorization", authorization)).andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/skills").header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"name":" ","content":""}
+                                """)).andExpect(status().isBadRequest());
+    }
+
+    private void verifySkillSelectionAndDeletion(String authorization) throws Exception {
+        String richHtml = "<style>.card{display:grid;gap:17px}</style><section class='card' style='--accent:purple'><p style='margin-bottom:37px'>正文</p><table><tbody><tr><td>内容</td></tr></tbody></table><svg viewBox='0 0 10 10'><circle r='3'></circle></svg></section>";
+        String payload = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(
+                java.util.Map.of("title","自由样式", "contentHtml",richHtml, "skillId",testSkillId));
+        var result = mockMvc.perform(post("/api/articles").header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON).content(payload))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.skillId").value(testSkillId))
+                .andExpect(jsonPath("$.data.contentHtml").value(org.hamcrest.Matchers.containsString("display:grid")))
+                .andExpect(jsonPath("$.data.contentHtml").value(org.hamcrest.Matchers.containsString("margin-bottom:37px")))
+                .andReturn();
+        var data = new com.fasterxml.jackson.databind.ObjectMapper().readTree(result.getResponse().getContentAsString()).get("data");
+        long id = data.get("id").asLong();
+        mockMvc.perform(put("/api/articles/" + id).header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON).content(data.toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.revision").value(1))
+                .andExpect(jsonPath("$.data.contentHtml").value(data.get("contentHtml").asText())).andReturn();
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/skills/" + testSkillId)
+                        .header("Authorization", authorization)).andExpect(status().isOk());
+        mockMvc.perform(get("/api/skills/" + testSkillId).header("Authorization", authorization)).andExpect(status().isNotFound());
+        org.junit.jupiter.api.Assertions.assertEquals(1L, skillService.resolve(testSkillId).getId());
+        // Saving an existing article with a deleted selection is still allowed.
+        mockMvc.perform(put("/api/articles/" + id).header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON).content(data.toString())).andExpect(status().isOk());
+        skillService.run(null);
+        org.junit.jupiter.api.Assertions.assertEquals(2L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ARTICLE_SKILL", Long.class));
+    }
+
+    @Autowired private ink.icoding.wechat.article.skill.ArticleSkillService skillService;
 
     private void verifyBrowserToolCallingLoop(String authorization) throws Exception {
         AtomicInteger llmRequests = new AtomicInteger();
@@ -390,6 +449,10 @@ class CoreApiIntegrationTests {
                             "<h2>工具改写标题</h2><p><img src=\"" + localImageUrl
                                     + "\" alt=\"素材库图片\"></p>"));
 
+            mockMvc.perform(put("/api/skills/" + testSkillId).header("Authorization", authorization)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"杂志风格\",\"content\":\"SKILL_REFRESHED 紫色网格、SVG、列表和表格\"}"))
+                    .andExpect(status().isOk());
             var followUp = mockMvc.perform(post("/api/articles/1/ai/chat")
                             .header("Authorization", authorization)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -408,7 +471,9 @@ class CoreApiIntegrationTests {
                     });
             if (llmRequests.get() != 4) throw new AssertionError("第二轮应只请求 LLM 一次，实际总数为 " + llmRequests.get());
             String restoredRequest = llmRequestBodies.get(3);
-            if (!restoredRequest.contains("function_call_output")
+            if (!llmRequestBodies.get(0).contains("SKILL_MAGAZINE")
+                    || !restoredRequest.contains("SKILL_REFRESHED")
+                    || !restoredRequest.contains("function_call_output")
                     || !restoredRequest.contains("call-read-1")
                     || !restoredRequest.contains("call-replace-1")
                     || !restoredRequest.contains("input_image")
@@ -505,7 +570,8 @@ class CoreApiIntegrationTests {
             if (toolCalls == null || toolCalls < 1) throw new AssertionError("任务运行没有记录工具调用");
             if (llmRequests.get() != 2) throw new AssertionError("定时 Agent 工具循环应请求模型两次");
             String firstRequest = requestBodies.get(0);
-            if (!firstRequest.contains("search_web") || !firstRequest.contains("browse_webpage")
+            if (!firstRequest.contains("SKILL_REFRESHED") || firstRequest.contains("绿色短横线")
+                    || !firstRequest.contains("search_web") || !firstRequest.contains("browse_webpage")
                     || !firstRequest.contains("generate_image") || !firstRequest.contains("save_article_draft")
                     || !firstRequest.contains("每天搜索并浏览人工智能行业动态")) {
                 throw new AssertionError("定时 Agent 没有获得完整工具和任务要求：" + firstRequest);

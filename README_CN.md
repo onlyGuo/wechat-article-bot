@@ -29,7 +29,7 @@
 | 能力 | 说明 |
 | --- | --- |
 | 多公众号管理 | 统一管理 AppID/AppSecret、账号类型、默认作者和写作风格，支持连接检测与 Token 缓存。 |
-| AI 协同编辑 | Tiptap 富文本编辑、自动保存、微信手机预览，Agent 通过 Tool Calling 直接修改文章。 |
+| AI 协同编辑 | 保留 HTML/CSS 的可视化与源码编辑、自动保存、微信手机预览，Agent 通过 Tool Calling 直接修改文章。 |
 | 素材与图片 | 本地素材库、网络图片导入、AI 生图/改图、封面管理，自动上传微信正文图片。 |
 | 微信草稿与发布 | 创建/更新草稿、提交发布、查询发布结果；耗时操作通过 SSE 实时显示进度。 |
 | 定时创作 | Quartz JDBC 持久化调度，支持一次性、间隔、每日/周/月/年和高级 Cron 计划。 |
@@ -182,6 +182,18 @@ docker compose --env-file deploy/env/dev.env \
 4. 点击 **预览** 确认微信样式，再点击 **同步草稿**。微信草稿要求文章必须有封面。
 5. 检查微信草稿后，再由有权限的用户提交发布。
 
+### 文章 Skill 与自由排版
+
+在 **Skill 管理** 中新增、查看、搜索、编辑或删除文章 Skill。Skill 内容可自由描述语气、结构、排版与视觉样式，也可以包含 Markdown 说明和 HTML/CSS 示例。
+
+原先写死在提示词里的绿色公众号模板已迁移为“默认公众号风格”，首次启动从 `src/main/resources/skills/default-article.md` 初始化。后续重启不会覆盖用户的修改。可将任意 Skill 设为默认；删除默认 Skill 前需先指定另一个默认值。
+
+在文章编辑区或定时任务中选择 Skill；不选择则跟随当前默认值。Skill 修改在后续 AI 创作中生效，包括已有对话的下一轮。删除被引用的 Skill 后会回退到当前默认值，已有文章正文不会自动重排。
+
+正文支持可视化编辑与 **HTML / CSS 源码** 切换，保留 class、style 标签、CSS 变量、网格、渐变、SVG、列表和表格等结构。编辑与预览在隔离页面中呈现，样式不会影响管理界面；仅拦截脚本、事件处理器等可执行内容。保存及微信提交前不再强制覆盖段间距。手机预览展示本地效果，微信平台自身仍可能调整收到的样式，发布前请检查实际微信草稿。
+
+现有 SmartMybatis 3.0.1 / MySQL 自动建表机制会新增 `ARTICLE_SKILL` 表和文章、定时任务的 `SKILL_ID` 列。更新应用并重启后生效；原有正文无需迁移。
+
 ### 第五步：配置定时创作
 
 进入 **定时任务 → 新建任务**，选择执行时区与计划，然后用自然语言说清楚：
@@ -278,7 +290,7 @@ cd webui && npm run build
 ## 技术栈
 
 - **后端**：Java 17、Spring Boot 4.1、Spring Security、Smart MyBatis、Quartz JDBC、Agent4j。
-- **前端**：Vue 3、Vite、Pinia、Tiptap、DOMPurify、SSE。
+- **前端**：Vue 3、Vite、Pinia、隔离 HTML/CSS 编辑、DOMPurify（聊天 Markdown）、SSE。
 - **存储**：MySQL 8 + 本地/挂载文件存储。
 - **集成**：微信公众平台 API，OpenAI-compatible Responses / Chat Completions，Anthropic Messages，图片生成服务。
 

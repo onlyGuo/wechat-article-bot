@@ -31,6 +31,7 @@ public interface ArticleMapper extends SmartMapper<Article> {
         if (article == null || Boolean.TRUE.equals(article.getDeleted())
                 || article.getRevision() == null || article.getRevision() != expectedRevision) return 0;
         article.setAccountId(changes.getAccountId());
+        article.setSkillId(changes.getSkillId());
         article.setTitle(changes.getTitle());
         article.setAuthor(changes.getAuthor());
         article.setDigest(changes.getDigest());

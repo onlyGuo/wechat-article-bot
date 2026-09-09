@@ -16,6 +16,7 @@ public class Article extends PO {
     @ID
     private Long id;
     private Long accountId;
+    private Long skillId;
     @TableField(exist = false, link = WechatAccount.class, linkField = "name", self = "accountId", target = "id")
     private String accountName;
     private String title;

@@ -6,13 +6,13 @@ import ink.icoding.wechat.article.asset.Asset;
 import ink.icoding.wechat.article.asset.AssetService;
 import ink.icoding.wechat.article.auth.CurrentUserService;
 import ink.icoding.wechat.article.common.BusinessException;
+import ink.icoding.wechat.article.skill.ArticleSkillService;
 import ink.icoding.wechat.article.common.PageResult;
 import ink.icoding.wechat.article.wechat.WechatClient;
 import jakarta.validation.constraints.NotBlank;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.safety.Safelist;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,14 +24,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 public class ArticleService {
-    private static final String LOCAL_ASSET_ORIGIN = "https://wechat-article-local.invalid";
-    private static final Pattern LOCAL_ASSET_SRC = Pattern.compile(
-            "(?i)(\\bsrc\\s*=\\s*)([\"'])(/uploads/[a-f0-9]{32}\\.(?:jpg|png|gif|webp))\\2");
     private static final Pattern LOCAL_ASSET_NAME = Pattern.compile(
             "(?i)[a-f0-9]{32}\\.(?:jpg|png|gif|webp)");
     private final ArticleMapper mapper;
@@ -40,16 +36,19 @@ public class ArticleService {
     private final AssetService assetService;
     private final WechatAccountService accountService;
     private final WechatClient wechatClient;
+    private final ArticleSkillService skillService;
 
     public ArticleService(ArticleMapper mapper, ArticleRevisionMapper revisionMapper,
                           CurrentUserService currentUserService, AssetService assetService,
-                          WechatAccountService accountService, WechatClient wechatClient) {
+                          WechatAccountService accountService, WechatClient wechatClient,
+                          ArticleSkillService skillService) {
         this.mapper = mapper;
         this.revisionMapper = revisionMapper;
         this.currentUserService = currentUserService;
         this.assetService = assetService;
         this.accountService = accountService;
         this.wechatClient = wechatClient;
+        this.skillService = skillService;
     }
 
     public PageResult<Article> list(Long accountId, String status, String keyword, int page, int pageSize) {
@@ -76,8 +75,10 @@ public class ArticleService {
     }
 
     private Article createWithUser(ArticleRequest request, String sourceType, Long userId) {
+        if (!"SCHEDULED".equals(sourceType)) skillService.validateSelection(request.skillId());
         Article article = new Article();
         article.setAccountId(request.accountId());
+        article.setSkillId(request.skillId());
         article.setTitle(request.title() == null || request.title().isBlank() ? "未命名文章" : request.title());
         article.setAuthor(request.author());
         article.setDigest(request.digest());
@@ -116,10 +117,12 @@ public class ArticleService {
 
     private Article updateWithUser(Long id, ArticleRequest request, String changeSource, String summary, Long userId) {
         Article existing = required(id);
+        if (!Objects.equals(existing.getSkillId(), request.skillId())) skillService.validateSelection(request.skillId());
         if (request.revision() == null) throw new BusinessException("缺少文章版本号");
         Article article = new Article();
         article.setId(id);
         article.setAccountId(request.accountId());
+        article.setSkillId(request.skillId());
         article.setTitle(request.title() == null || request.title().isBlank() ? "未命名文章" : request.title());
         article.setAuthor(request.author());
         article.setDigest(request.digest());
@@ -152,7 +155,7 @@ public class ArticleService {
         if (target == null) throw new BusinessException("指定版本不存在");
         ArticleRequest request = new ArticleRequest(current.getAccountId(), target.getTitle(), current.getAuthor(),
                 target.getDigest(), target.getContentHtml(), current.getCoverAssetId(), current.getCoverUrl(),
-                current.getSourceUrl(), current.getRevision());
+                current.getSourceUrl(), current.getRevision(), current.getSkillId());
         return update(id, request, "ROLLBACK", "回滚到版本 " + revision);
     }
 
@@ -307,6 +310,7 @@ public class ArticleService {
 
     private boolean sameEditableContent(Article left, Article right) {
         return Objects.equals(left.getAccountId(), right.getAccountId())
+                && Objects.equals(left.getSkillId(), right.getSkillId())
                 && Objects.equals(left.getTitle(), right.getTitle())
                 && Objects.equals(left.getAuthor(), right.getAuthor())
                 && Objects.equals(left.getDigest(), right.getDigest())
@@ -323,23 +327,7 @@ public class ArticleService {
     }
 
     private String clean(String html) {
-        if (html == null || html.isBlank()) return "<p></p>";
-        Matcher matcher = LOCAL_ASSET_SRC.matcher(html);
-        StringBuffer prepared = new StringBuffer();
-        while (matcher.find()) {
-            String replacement = matcher.group(1) + matcher.group(2) + LOCAL_ASSET_ORIGIN
-                    + matcher.group(3) + matcher.group(2);
-            matcher.appendReplacement(prepared, Matcher.quoteReplacement(replacement));
-        }
-        matcher.appendTail(prepared);
-        Safelist safelist = Safelist.relaxed()
-                .addTags("section", "figure", "figcaption", "hr")
-                .addAttributes(":all", "style", "class", "data-id")
-                .addAttributes("img", "width", "height")
-                .addProtocols("img", "src", "http", "https");
-        String cleaned = Jsoup.clean(prepared.toString(), "", safelist,
-                new org.jsoup.nodes.Document.OutputSettings().prettyPrint(false));
-        return cleaned.replace(LOCAL_ASSET_ORIGIN + "/uploads/", "/uploads/");
+        return ArticleContentPolicy.sanitize(html);
     }
 
     private String blankToDefault(String value, String fallback) {
@@ -360,7 +348,7 @@ public class ArticleService {
     }
 
     public record ArticleRequest(Long accountId, String title, String author, String digest, String contentHtml,
-                                 Long coverAssetId, String coverUrl, String sourceUrl, Integer revision) {}
+                                 Long coverAssetId, String coverUrl, String sourceUrl, Integer revision, Long skillId) {}
     public record PublishStatus(int code, String message, Article article) {}
     public record WechatProgress(String stage, String message, int percent) {}
 
