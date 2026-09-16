@@ -67,3 +67,6 @@
 .ProseMirror .selectedCell:after{content:"";position:absolute;inset:0;pointer-events:none;background:rgba(39,126,91,.08)}
 .ProseMirror pre,.preview-content pre{margin:18px 0;padding:14px 16px;border-radius:8px;background:#1f2924;color:#e8f0eb;overflow-x:auto;font:13px/1.7 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;white-space:pre-wrap}
 .ProseMirror hr,.preview-content hr{border:0;border-top:1px solid #dfe5e1;margin:28px 0}
+/* Language selector shared by the signed-in shell and login page. */
+.language-switcher{display:inline-flex;align-items:center;gap:6px;color:#607067;font-size:13px;white-space:nowrap}.language-switcher select{appearance:auto;border:1px solid #dce4de;border-radius:7px;background:#fff;color:inherit;font:inherit;padding:6px 8px;cursor:pointer}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.login-language{display:flex;justify-content:flex-end;margin-bottom:24px}

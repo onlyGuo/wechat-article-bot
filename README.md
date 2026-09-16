@@ -10,7 +10,7 @@
 
 </div>
 
-![Mozhou dashboard](docs/images/dashboard.png)
+![Mozhou dashboard](docs/images/en/dashboard.png)
 
 ## Why Mozhou?
 
@@ -42,34 +42,34 @@ Mozhou brings that entire lifecycle into a self-hosted AI content operations stu
 
 ### See the complete content pipeline at a glance
 
-![Content operations dashboard](docs/images/dashboard.png)
+![Content operations dashboard](docs/images/en/dashboard.png)
 
 ### Edit with an AI agent that shares the same document context
 
-![AI collaborative article editor](docs/images/ai-editor.png)
+![AI collaborative article editor](docs/images/en/ai-editor.png)
 
 ### Manage Official Accounts and article lifecycles in one place
 
 <p align="center">
-  <img src="docs/images/accounts.png" alt="Official Account management" width="49%">
-  <img src="docs/images/articles.png" alt="Article management" width="49%">
+  <img src="docs/images/en/accounts.png" alt="Official Account management" width="49%">
+  <img src="docs/images/en/articles.png" alt="Article management" width="49%">
 </p>
 
 ### Let autonomous agents deliver on schedule
 
 <p align="center">
-  <img src="docs/images/scheduled-tasks.png" alt="Scheduled tasks" width="49%">
-  <img src="docs/images/schedule-editor.png" alt="Scheduled agent configuration" width="49%">
+  <img src="docs/images/en/scheduled-tasks.png" alt="Scheduled tasks" width="49%">
+  <img src="docs/images/en/schedule-editor.png" alt="Scheduled agent configuration" width="49%">
 </p>
 
 <details>
 <summary><strong>More screens: sign-in, Official Account setup, and system settings</strong></summary>
 
-![Sign-in page](docs/images/login.png)
+![Sign-in page](docs/images/en/login.png)
 
-![Official Account setup](docs/images/account-settings.png)
+![Official Account setup](docs/images/en/account-settings.png)
 
-![LLM and system settings](docs/images/settings.png)
+![LLM and system settings](docs/images/en/settings.png)
 
 </details>
 
@@ -125,7 +125,7 @@ docker compose --env-file deploy/env/dev.env \
 
 Open <http://localhost:8081>. The default username is `admin`; the password is the value you set in `ADMIN_PASSWORD`.
 
-![Mozhou sign-in page](docs/images/login.png)
+![Mozhou sign-in page](docs/images/en/login.png)
 
 ### 3. Stop or upgrade
 
@@ -161,13 +161,13 @@ Open **System Settings → LLM Service** and configure:
 3. **Model and API key** — both must match the selected provider.
 4. **Image model** — configure it if agents should generate or edit images. Its Base URL and key can be independent, or the key can reuse the LLM credential.
 
-![LLM configuration](docs/images/settings.png)
+![LLM configuration](docs/images/en/settings.png)
 
 ### Step 3: connect a WeChat Official Account
 
 Open **Official Accounts → Add Official Account** and enter the name, account type, AppID, AppSecret, original ID, default author, and preferred writing style. Save it, then select **Test Connection**.
 
-![Official Account configuration](docs/images/account-settings.png)
+![Official Account configuration](docs/images/en/account-settings.png)
 
 Before testing, make sure:
 
@@ -194,7 +194,7 @@ Open **Scheduled Tasks → New Task**, select a timezone and schedule, then desc
 
 Run the task once with **Run Now** before enabling the schedule. Review its research, tool calls, output, and errors in the execution history.
 
-![Scheduled content agent](docs/images/schedule-editor.png)
+![Scheduled content agent](docs/images/en/schedule-editor.png)
 
 ## Production deployment
 

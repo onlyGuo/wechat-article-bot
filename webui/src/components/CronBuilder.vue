@@ -2,14 +2,16 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { CalendarClock, Check, Copy } from 'lucide-vue-next'
 import { describeQuartzCron } from '../utils/cron'
+import { useI18n } from '../i18n'
 
 const props=defineProps({modelValue:{type:String,default:''}})
 const emit=defineEmits(['update:modelValue'])
-const modes=[
-  ['once','一次性'],['interval','持续间隔'],['daily','每天'],['weekly','每周'],
-  ['monthly','每月'],['yearly','每年'],['advanced','高级']
-]
-const weekOptions=[['MON','一'],['TUE','二'],['WED','三'],['THU','四'],['FRI','五'],['SAT','六'],['SUN','日']]
+const { t } = useI18n()
+const modes=computed(()=>[
+  ['once',t('cron.once')],['interval',t('cron.interval')],['daily',t('cron.daily')],['weekly',t('cron.weekly')],
+  ['monthly',t('cron.monthly')],['yearly',t('cron.yearly')],['advanced',t('cron.advanced')]
+])
+const weekOptions=computed(()=>[['MON',t('cron.weekNames.mon')],['TUE',t('cron.weekNames.tue')],['WED',t('cron.weekNames.wed')],['THU',t('cron.weekNames.thu')],['FRI',t('cron.weekNames.fri')],['SAT',t('cron.weekNames.sat')],['SUN',t('cron.weekNames.sun')]])
 const monthOptions=Array.from({length:12},(_,index)=>index+1)
 const dayOptions=Array.from({length:31},(_,index)=>index+1)
 const pad=value=>String(value).padStart(2,'0')
@@ -107,45 +109,45 @@ watch(expression,value=>{if(!hydrating)emit('update:modelValue',value)})
 
     <div class="cron-config">
       <div v-if="mode==='once'" class="cron-row">
-        <label>执行日期与时间<input v-model="onceAt" type="datetime-local" required></label>
-        <p>任务只执行一次，成功或失败后都会自动停用，不再重复触发。</p>
+        <label>{{ t('cron.dateTime') }}<input v-model="onceAt" type="datetime-local" required></label>
+        <p>{{ t('cron.onceHint') }}</p>
       </div>
 
       <div v-else-if="mode==='interval'" class="cron-row interval-row">
-        <label>间隔单位<select v-model="interval.unit"><option value="SECONDS">秒</option><option value="MINUTES">分钟</option><option value="HOURS">小时</option></select></label>
-        <label>每隔<input v-model.number="interval.step" type="number" min="1" :max="interval.unit==='HOURS'?23:59"><span>{{interval.unit==='SECONDS'?'秒':interval.unit==='MINUTES'?'分钟':'小时'}}</span></label>
-        <label v-if="interval.unit==='HOURS'">第几分钟<input v-model.number="interval.minute" type="number" min="0" max="59"></label>
-        <label v-if="interval.unit!=='SECONDS'">秒<input v-model.number="interval.second" type="number" min="0" max="59"></label>
-        <p v-if="highFrequency" class="cron-warning">高频任务可能产生大量 AI 调用与费用，请确认确实需要。</p>
+        <label>{{ t('cron.intervalUnit') }}<select v-model="interval.unit"><option value="SECONDS">{{ t('cron.seconds') }}</option><option value="MINUTES">{{ t('cron.minutes') }}</option><option value="HOURS">{{ t('cron.hours') }}</option></select></label>
+        <label>{{ t('cron.every') }}<input v-model.number="interval.step" type="number" min="1" :max="interval.unit==='HOURS'?23:59"><span>{{interval.unit==='SECONDS'?t('cron.seconds'):interval.unit==='MINUTES'?t('cron.minutes'):t('cron.hours')}}</span></label>
+        <label v-if="interval.unit==='HOURS'">{{ t('cron.minuteOfHour') }}<input v-model.number="interval.minute" type="number" min="0" max="59"></label>
+        <label v-if="interval.unit!=='SECONDS'">{{ t('cron.seconds') }}<input v-model.number="interval.second" type="number" min="0" max="59"></label>
+        <p v-if="highFrequency" class="cron-warning">{{ t('cron.highFrequency') }}</p>
       </div>
 
-      <div v-else-if="mode==='daily'" class="cron-row"><div class="cron-time"><label>时<input v-model.number="time.hour" type="number" min="0" max="23"></label><b>:</b><label>分<input v-model.number="time.minute" type="number" min="0" max="59"></label><b>:</b><label>秒<input v-model.number="time.second" type="number" min="0" max="59"></label></div><p>每天在指定时间执行。</p></div>
+      <div v-else-if="mode==='daily'" class="cron-row"><div class="cron-time"><label>{{ t('cron.hour') }}<input v-model.number="time.hour" type="number" min="0" max="23"></label><b>:</b><label>{{ t('cron.minute') }}<input v-model.number="time.minute" type="number" min="0" max="59"></label><b>:</b><label>{{ t('cron.second') }}<input v-model.number="time.second" type="number" min="0" max="59"></label></div><p>{{ t('cron.dailyHint') }}</p></div>
 
       <div v-else-if="mode==='weekly'" class="cron-stack">
-        <span class="cron-label">执行星期</span><div class="cron-chips week"><button v-for="item in weekOptions" :key="item[0]" type="button" :class="{active:weekDays.includes(item[0])}" @click="toggle(weekDays,item[0])">{{item[1]}}</button></div>
-        <div class="cron-time"><label>时<input v-model.number="time.hour" type="number" min="0" max="23"></label><b>:</b><label>分<input v-model.number="time.minute" type="number" min="0" max="59"></label><b>:</b><label>秒<input v-model.number="time.second" type="number" min="0" max="59"></label></div>
+        <span class="cron-label">{{ t('cron.weekdays') }}</span><div class="cron-chips week"><button v-for="item in weekOptions" :key="item[0]" type="button" :class="{active:weekDays.includes(item[0])}" @click="toggle(weekDays,item[0])">{{item[1]}}</button></div>
+        <div class="cron-time"><label>{{ t('cron.hour') }}<input v-model.number="time.hour" type="number" min="0" max="23"></label><b>:</b><label>{{ t('cron.minute') }}<input v-model.number="time.minute" type="number" min="0" max="59"></label><b>:</b><label>{{ t('cron.second') }}<input v-model.number="time.second" type="number" min="0" max="59"></label></div>
       </div>
 
       <div v-else-if="mode==='monthly'" class="cron-stack">
-        <span class="cron-label">执行日期（可多选）</span><div class="cron-chips days"><button v-for="day in dayOptions" :key="day" type="button" :class="{active:monthDays.includes(String(day))}" @click="toggleMonthDay(String(day))">{{day}}</button><button type="button" :class="{active:monthDays.includes('L')}" @click="toggleMonthDay('L')">最后</button></div>
-        <div class="cron-time"><label>时<input v-model.number="time.hour" type="number" min="0" max="23"></label><b>:</b><label>分<input v-model.number="time.minute" type="number" min="0" max="59"></label><b>:</b><label>秒<input v-model.number="time.second" type="number" min="0" max="59"></label></div>
+        <span class="cron-label">{{ t('cron.days') }}</span><div class="cron-chips days"><button v-for="day in dayOptions" :key="day" type="button" :class="{active:monthDays.includes(String(day))}" @click="toggleMonthDay(String(day))">{{day}}</button><button type="button" :class="{active:monthDays.includes('L')}" @click="toggleMonthDay('L')">{{ t('cron.last') }}</button></div>
+        <div class="cron-time"><label>{{ t('cron.hour') }}<input v-model.number="time.hour" type="number" min="0" max="23"></label><b>:</b><label>{{ t('cron.minute') }}<input v-model.number="time.minute" type="number" min="0" max="59"></label><b>:</b><label>{{ t('cron.second') }}<input v-model.number="time.second" type="number" min="0" max="59"></label></div>
       </div>
 
       <div v-else-if="mode==='yearly'" class="cron-row yearly-row">
-        <label>月份<select v-model.number="yearly.month"><option v-for="month in monthOptions" :key="month" :value="month">{{month}} 月</option></select></label>
-        <label>日期<input v-model.number="yearly.day" type="number" min="1" max="31"></label>
-        <div class="cron-time"><label>时<input v-model.number="time.hour" type="number" min="0" max="23"></label><b>:</b><label>分<input v-model.number="time.minute" type="number" min="0" max="59"></label><b>:</b><label>秒<input v-model.number="time.second" type="number" min="0" max="59"></label></div>
+        <label>{{ t('cron.month') }}<select v-model.number="yearly.month"><option v-for="month in monthOptions" :key="month" :value="month">{{month}}</option></select></label>
+        <label>{{ t('cron.date') }}<input v-model.number="yearly.day" type="number" min="1" max="31"></label>
+        <div class="cron-time"><label>{{ t('cron.hour') }}<input v-model.number="time.hour" type="number" min="0" max="23"></label><b>:</b><label>{{ t('cron.minute') }}<input v-model.number="time.minute" type="number" min="0" max="59"></label><b>:</b><label>{{ t('cron.second') }}<input v-model.number="time.second" type="number" min="0" max="59"></label></div>
       </div>
 
       <div v-else class="cron-advanced">
-        <p>分别设置 Quartz Cron 的七个字段。支持 <code>*</code>、<code>?</code>、范围、列表、步长、<code>L</code>、<code>W</code> 和 <code>#</code> 等语法。</p>
-        <div><label>秒<input v-model="advanced.second" required></label><label>分<input v-model="advanced.minute" required></label><label>时<input v-model="advanced.hour" required></label><label>日<input v-model="advanced.day" required></label><label>月<input v-model="advanced.month" required></label><label>星期<input v-model="advanced.week" required></label><label>年（可选）<input v-model="advanced.year"></label></div>
+        <p>{{ t('cron.advancedHint') }}</p>
+        <div><label>{{ t('cron.second') }}<input v-model="advanced.second" required></label><label>{{ t('cron.minute') }}<input v-model="advanced.minute" required></label><label>{{ t('cron.hour') }}<input v-model="advanced.hour" required></label><label>{{ t('cron.day') }}<input v-model="advanced.day" required></label><label>{{ t('cron.month') }}<input v-model="advanced.month" required></label><label>{{ t('cron.week') }}<input v-model="advanced.week" required></label><label>{{ t('cron.yearOptional') }}<input v-model="advanced.year"></label></div>
       </div>
     </div>
 
     <div class="cron-preview">
-      <span class="cron-preview-icon"><CalendarClock :size="18"/></span><div><small>执行计划</small><strong>{{summary}}</strong><code>{{expression||'等待配置'}}</code></div>
-      <button type="button" title="复制 Cron" @click="copyExpression"><Check v-if="copied" :size="16"/><Copy v-else :size="16"/></button>
+      <span class="cron-preview-icon"><CalendarClock :size="18"/></span><div><small>{{ t('cron.preview') }}</small><strong>{{summary}}</strong><code>{{expression||t('cron.waiting')}}</code></div>
+      <button type="button" :title="t('cron.copy')" @click="copyExpression"><Check v-if="copied" :size="16"/><Copy v-else :size="16"/></button>
     </div>
   </div>
 </template>

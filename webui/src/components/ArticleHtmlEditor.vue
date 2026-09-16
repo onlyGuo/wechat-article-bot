@@ -1,7 +1,9 @@
 <script setup>
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { useI18n } from '../i18n'
 
 const props = defineProps({ content: { type: String, default: '<p></p>' }, readonly: Boolean, disabled: Boolean })
+const { t } = useI18n()
 const emit = defineEmits(['update'])
 const frame = ref(), sourceMode = ref(false), html = ref(props.content), height = ref(550)
 let observer, selection, attachedDocument
@@ -100,7 +102,7 @@ function insertHtml(value) {
   else command('insertHTML', safe)
 }
 function insertImage(asset) {
-  const image = document.createElement('img'); image.src = asset.publicUrl; image.alt = asset.originalName || '文章配图'
+  const image = document.createElement('img'); image.src = asset.publicUrl; image.alt = asset.originalName || t('htmlEditor.imageAlt')
   insertHtml(image.outerHTML)
 }
 function paste(event) {
@@ -108,7 +110,7 @@ function paste(event) {
   const value = event.clipboardData?.getData('text/html')
   if (value) { event.preventDefault(); insertHtml(value) }
 }
-function link() { const url = prompt('输入链接地址', 'https://'); if (url && /^(https?:|mailto:|tel:)/i.test(url)) command('createLink', url) }
+function link() { const url = prompt(t('htmlEditor.linkPrompt'), 'https://'); if (url && /^(https?:|mailto:|tel:)/i.test(url)) command('createLink', url) }
 function blockStyle(property, value) {
   if (!value || props.disabled) return
   const doc = focusSelection()
@@ -136,20 +138,20 @@ defineExpose({ getHTML:()=>html.value, getText, getBlocks, setContent, deleteBlo
 <template>
   <div class="html-editor">
     <div v-if="!readonly" class="html-editor-controls">
-      <div class="html-editor-modes"><button type="button" :class="{active:!sourceMode}" @click="sourceMode&&toggleSource()">可视化编辑</button><button type="button" :class="{active:sourceMode}" @click="!sourceMode&&toggleSource()">HTML / CSS 源码</button><span>自由排版 · 保留原始样式</span></div>
+      <div class="html-editor-modes"><button type="button" :class="{active:!sourceMode}" @click="sourceMode&&toggleSource()">{{ t('htmlEditor.visual') }}</button><button type="button" :class="{active:sourceMode}" @click="!sourceMode&&toggleSource()">{{ t('htmlEditor.source') }}</button><span>{{ t('htmlEditor.freeLayout') }}</span></div>
       <div v-if="!sourceMode" class="html-format-tools" :inert="disabled">
-        <button type="button" title="加粗" @mousedown.prevent @click="command('bold')"><b>B</b></button><button type="button" title="斜体" @mousedown.prevent @click="command('italic')"><i>I</i></button><button type="button" title="下划线" @mousedown.prevent @click="command('underline')"><u>U</u></button><button type="button" title="删除线" @mousedown.prevent @click="command('strikeThrough')"><s>S</s></button>
-        <select aria-label="段落类型" @change="command('formatBlock',$event.target.value);$event.target.value='' "><option value="">段落</option><option value="p">正文</option><option value="h1">一级标题</option><option value="h2">二级标题</option><option value="h3">三级标题</option><option value="blockquote">引用</option><option value="pre">代码</option></select>
-        <select aria-label="字号" @change="blockStyle('font-size',$event.target.value);$event.target.value=''"><option value="">字号</option><option v-for="n in [12,14,16,18,20,24,28,32,48]" :value="`${n}px`">{{n}}</option></select>
-        <label title="文字颜色">字<input type="color" aria-label="文字颜色" value="#333333" @input="command('foreColor',$event.target.value)"></label><label title="背景颜色">底<input type="color" aria-label="背景颜色" value="#fff2a8" @input="command('hiliteColor',$event.target.value)"></label>
-        <button v-for="[name,label] in [['justifyLeft','左对齐'],['justifyCenter','居中'],['justifyRight','右对齐'],['justifyFull','两端对齐'],['insertUnorderedList','列表'],['insertOrderedList','编号'],['undo','撤销'],['redo','重做'],['removeFormat','清除格式']]" type="button" @mousedown.prevent @click="command(name)">{{label}}</button>
-        <select aria-label="行高" @change="blockStyle('line-height',$event.target.value);$event.target.value=''"><option value="">行高</option><option v-for="n in [1,1.5,1.8,2,2.5]" :value="n">{{n}}</option></select>
-        <select aria-label="段间距" @change="blockStyle('margin-bottom',$event.target.value);$event.target.value=''"><option value="">段间距</option><option v-for="n in [0,8,16,24,32,48]" :value="`${n}px`">{{n}}px</option></select>
-        <button type="button" @mousedown.prevent @click="link">链接</button><button type="button" @mousedown.prevent @click="insertHtml('<hr>')">分割线</button><button type="button" @mousedown.prevent @click="insertHtml('<table style=&quot;width:100%;border-collapse:collapse&quot;><tbody>'+Array.from({length:3},()=>'<tr>'+Array.from({length:3},()=>'<td style=&quot;border:1px solid #ccc;padding:8px&quot;>内容</td>').join('')+'</tr>').join('')+'</tbody></table>')">表格</button>
+        <button type="button" :title="t('htmlEditor.bold')" @mousedown.prevent @click="command('bold')"><b>B</b></button><button type="button" :title="t('htmlEditor.italic')" @mousedown.prevent @click="command('italic')"><i>I</i></button><button type="button" :title="t('htmlEditor.underline')" @mousedown.prevent @click="command('underline')"><u>U</u></button><button type="button" :title="t('htmlEditor.strike')" @mousedown.prevent @click="command('strikeThrough')"><s>S</s></button>
+        <select :aria-label="t('htmlEditor.paragraphType')" @change="command('formatBlock',$event.target.value);$event.target.value='' "><option value="">{{ t('htmlEditor.paragraph') }}</option><option value="p">{{ t('htmlEditor.body') }}</option><option value="h1">{{ t('htmlEditor.headingOne') }}</option><option value="h2">{{ t('htmlEditor.headingTwo') }}</option><option value="h3">{{ t('htmlEditor.headingThree') }}</option><option value="blockquote">{{ t('htmlEditor.quote') }}</option><option value="pre">{{ t('htmlEditor.code') }}</option></select>
+        <select :aria-label="t('htmlEditor.fontSize')" @change="blockStyle('font-size',$event.target.value);$event.target.value=''"><option value="">{{ t('htmlEditor.fontSize') }}</option><option v-for="n in [12,14,16,18,20,24,28,32,48]" :value="`${n}px`">{{n}}</option></select>
+        <label :title="t('htmlEditor.textColor')">A<input type="color" :aria-label="t('htmlEditor.textColor')" value="#333333" @input="command('foreColor',$event.target.value)"></label><label :title="t('htmlEditor.backgroundColor')">Bg<input type="color" :aria-label="t('htmlEditor.backgroundColor')" value="#fff2a8" @input="command('hiliteColor',$event.target.value)"></label>
+        <button v-for="[name,key] in [['justifyLeft','alignLeft'],['justifyCenter','alignCenter'],['justifyRight','alignRight'],['justifyFull','justify'],['insertUnorderedList','list'],['insertOrderedList','numberedList'],['undo','undo'],['redo','redo'],['removeFormat','clearFormat']]" type="button" @mousedown.prevent @click="command(name)">{{t(`htmlEditor.${key}`)}}</button>
+        <select :aria-label="t('htmlEditor.lineHeight')" @change="blockStyle('line-height',$event.target.value);$event.target.value=''"><option value="">{{ t('htmlEditor.lineHeight') }}</option><option v-for="n in [1,1.5,1.8,2,2.5]" :value="n">{{n}}</option></select>
+        <select :aria-label="t('htmlEditor.spacing')" @change="blockStyle('margin-bottom',$event.target.value);$event.target.value=''"><option value="">{{ t('htmlEditor.spacing') }}</option><option v-for="n in [0,8,16,24,32,48]" :value="`${n}px`">{{n}}px</option></select>
+        <button type="button" @mousedown.prevent @click="link">{{ t('htmlEditor.link') }}</button><button type="button" @mousedown.prevent @click="insertHtml('<hr>')">{{ t('htmlEditor.divider') }}</button><button type="button" @mousedown.prevent @click="insertHtml('<table style=&quot;width:100%;border-collapse:collapse&quot;><tbody>'+Array.from({length:3},()=>'<tr>'+Array.from({length:3},()=>`<td style=&quot;border:1px solid #ccc;padding:8px&quot;>${t('htmlEditor.tableContent')}</td>`).join('')+'</tr>').join('')+'</tbody></table>')">{{ t('htmlEditor.table') }}</button>
       </div>
     </div>
-    <textarea v-if="sourceMode" class="html-source" aria-label="文章 HTML 和 CSS 源码" :value="html" :disabled="disabled" spellcheck="false" @input="commitSource"></textarea>
-    <iframe v-show="!sourceMode" ref="frame" :title="readonly?'文章样式预览':'文章可视化编辑区'" class="html-canvas" sandbox="allow-same-origin" :srcdoc="frameDocument" :style="{height:`${height}px`}" @load="loaded"></iframe>
+    <textarea v-if="sourceMode" class="html-source" :aria-label="t('htmlEditor.sourceLabel')" :value="html" :disabled="disabled" spellcheck="false" @input="commitSource"></textarea>
+    <iframe v-show="!sourceMode" ref="frame" :title="readonly?t('htmlEditor.previewTitle'):t('htmlEditor.editTitle')" class="html-canvas" sandbox="allow-same-origin" :srcdoc="frameDocument" :style="{height:`${height}px`}" @load="loaded"></iframe>
   </div>
 </template>
 

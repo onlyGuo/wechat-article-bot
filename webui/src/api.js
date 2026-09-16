@@ -1,4 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_BASE || ''
+import { t } from './i18n'
 
 export function token() {
   return localStorage.getItem('wechat_bot_token') || ''
@@ -18,7 +19,7 @@ export async function api(path, options = {}) {
   const payload = await response.json().catch(() => null)
   if (!response.ok || payload?.success === false) {
     handleUnauthorized(response)
-    throw new Error(payload?.message || `请求失败 (${response.status})`)
+    throw new Error(payload?.message || t('common.requestFailed', { status: response.status }))
   }
   return payload?.data
 }
@@ -32,7 +33,7 @@ export async function stream(path, body, onEvent) {
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
     handleUnauthorized(response)
-    throw new Error(payload?.message || `请求失败 (${response.status})`)
+    throw new Error(payload?.message || t('common.requestFailed', { status: response.status }))
   }
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
