@@ -184,15 +184,17 @@ docker compose --env-file deploy/env/dev.env \
 
 ### 文章 Skill 与自由排版
 
-在 **Skill 管理** 中新增、查看、搜索、编辑或删除文章 Skill。Skill 内容可自由描述语气、结构、排版与视觉样式，也可以包含 Markdown 说明和 HTML/CSS 示例。
+在 **Skill 管理** 中可以查看项目内置 Skill，也可以新增、搜索、编辑或删除用户 Skill。列表卡片直接展示 HTML 效果缩略图，点击可在隔离窗口中查看完整样例。Skill 内容可描述语气、结构、排版与视觉样式。AI 生成的公众号正文禁止使用 style 标签、CSS 选择器、class 属性和 div 元素，原本使用 div 的内容必须改用 section。
 
-原先写死在提示词里的绿色公众号模板已迁移为“默认公众号风格”，首次启动从 `src/main/resources/skills/default-article.md` 初始化。后续重启不会覆盖用户的修改。可将任意 Skill 设为默认；删除默认 Skill 前需先指定另一个默认值。
+新建或更新用户 Skill 后，系统会立即调用当前启用的 LLM，按照该 Skill 生成一篇示例文章并保存预览。Skill 本身会先保存；如果 LLM 未配置或生成失败，列表会显示失败原因，并允许稍后重新生成，因此不会因预览失败而丢失编辑内容。
 
-在文章编辑区或定时任务中选择 Skill；不选择则跟随当前默认值。Skill 修改在后续 AI 创作中生效，包括已有对话的下一轮。删除被引用的 Skill 后会回退到当前默认值，已有文章正文不会自动重排。
+每个内置 Skill 位于 `src/main/resources/skills/<目录>/`：`index.html` 是最终效果样张，`prompt.md` 是运行时提示词。内置 Skill 不写入数据库，开发与打包运行时都直接读取 classpath；“默认公众号风格”固定使用 `skills/default-article/prompt.md`。内置项只读，用户 Skill 仍可正常增删改查。
+
+在文章编辑区或定时任务中选择 Skill；不选择则使用固定默认值。用户 Skill 用 `SKILL_ID` 保存，内置 Skill 用 `CLASSPATH_RESOURCES` 保存，不依赖数据库 ID。用户 Skill 修改在后续 AI 创作中生效，包括已有对话的下一轮；删除被引用的用户 Skill 后会回退到默认值，已有文章正文不会自动重排。
 
 正文支持可视化编辑与 **HTML / CSS 源码** 切换，保留 class、style 标签、CSS 变量、网格、渐变、SVG、列表和表格等结构。编辑与预览在隔离页面中呈现，样式不会影响管理界面；仅拦截脚本、事件处理器等可执行内容。保存及微信提交前不再强制覆盖段间距。手机预览展示本地效果，微信平台自身仍可能调整收到的样式，发布前请检查实际微信草稿。
 
-现有 SmartMybatis 3.0.1 / MySQL 自动建表机制会新增 `ARTICLE_SKILL` 表和文章、定时任务的 `SKILL_ID` 列。更新应用并重启后生效；原有正文无需迁移。
+现有 SmartMybatis 3.0.1 / MySQL 自动同步机制会为文章和定时任务新增 `CLASSPATH_RESOURCES` 列，并为用户 Skill 增加预览 HTML、状态、错误与更新时间字段；用户 Skill 继续保存在 `ARTICLE_SKILL` 表，并通过 `SKILL_ID` 引用。更新应用并重启后生效；原有正文无需迁移。
 
 ### 第五步：配置定时创作
 

@@ -87,9 +87,10 @@ class CoreApiIntegrationTests {
                                   "title": "接口验收文章",
                                   "author": "测试用户",
                                   "digest": "自动化测试创建",
-                                  "contentHtml": "<h2>正文</h2><script>alert(1)</script><p>内容</p>"
+                                  "contentHtml": "<h2>正文</h2><script>alert(1)</script><p>内容</p>",
+                                  "skillId": %d
                                 }
-                                """))
+                                """.formatted(testSkillId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.title").value("接口验收文章"))
@@ -127,9 +128,10 @@ class CoreApiIntegrationTests {
                   "author": "测试用户",
                   "digest": "自动化测试创建",
                   "contentHtml": "<h2>正文</h2><p>内容</p>",
-                  "revision": 1
+                  "revision": 1,
+                  "skillId": %d
                 }
-                """;
+                """.formatted(testSkillId);
         mockMvc.perform(put("/api/articles/1")
                         .header("Authorization", authorization)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -227,7 +229,6 @@ class CoreApiIntegrationTests {
         Long persistedJobs = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM QRTZ_JOB_DETAILS", Long.class);
         if (persistedJobs == null || persistedJobs < 1) throw new AssertionError("Quartz 任务没有持久化到数据库");
 
-        mockMvc.perform(post("/api/skills/1/default").header("Authorization", authorization)).andExpect(status().isOk());
         verifyScheduledAgentToolCalling(authorization);
         verifySkillSelectionAndDeletion(authorization);
 
@@ -252,21 +253,28 @@ class CoreApiIntegrationTests {
     private void verifySkillManagement(String authorization) throws Exception {
         mockMvc.perform(get("/api/skills")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/skills").header("Authorization", authorization))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].isDefault").value(true));
-        mockMvc.perform(get("/api/skills/1").header("Authorization", authorization))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.content").value(org.hamcrest.Matchers.containsString("#07C160")));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].classpathResources").value("skills/default-article/prompt.md"))
+                .andExpect(jsonPath("$.data[0].name").value("默认公众号风格"))
+                .andExpect(jsonPath("$.data[0].builtIn").value(true))
+                .andExpect(jsonPath("$.data[0].isDefault").value(true))
+                .andExpect(jsonPath("$.data[0].content").value(org.hamcrest.Matchers.containsString("#07C160")))
+                .andExpect(jsonPath("$.data[?(@.classpathResources == 'skills/bright-tech-editorial/prompt.md')].name")
+                        .value(org.hamcrest.Matchers.hasItem("明亮科技编辑")));
+        org.junit.jupiter.api.Assertions.assertEquals(0L,
+                jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ARTICLE_SKILL", Long.class));
         mockMvc.perform(post("/api/skills").header("Authorization", authorization)
                         .contentType(MediaType.APPLICATION_JSON).content("""
                                 {"name":"杂志风格","description":"自由布局验收","content":"SKILL_MAGAZINE 使用紫色网格布局，支持SVG、列表和表格"}
-                                """))
-                .andExpect(status().isOk());
+                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.previewStatus").value("FAILED"))
+                .andExpect(jsonPath("$.data.previewError").value("LLM 尚未在系统设置中启用或未配置 API Key"));
         testSkillId = jdbcTemplate.queryForObject("SELECT id FROM ARTICLE_SKILL WHERE name = '杂志风格'", Long.class);
-        mockMvc.perform(post("/api/skills/" + testSkillId + "/default").header("Authorization", authorization))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.isDefault").value(true));
-        org.junit.jupiter.api.Assertions.assertEquals(1, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM ARTICLE_SKILL WHERE is_default = true AND deleted = false", Integer.class));
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/skills/" + testSkillId)
-                        .header("Authorization", authorization)).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/skills/" + testSkillId).header("Authorization", authorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("杂志风格"))
+                .andExpect(jsonPath("$.data.classpathResources").isEmpty());
         mockMvc.perform(post("/api/skills").header("Authorization", authorization)
                         .contentType(MediaType.APPLICATION_JSON).content("""
                                 {"name":" ","content":""}
@@ -274,6 +282,29 @@ class CoreApiIntegrationTests {
     }
 
     private void verifySkillSelectionAndDeletion(String authorization) throws Exception {
+        mockMvc.perform(post("/api/articles").header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {
+                                  "title":"内置样式文章",
+                                  "contentHtml":"<p>内置样式</p>",
+                                  "classpathResources":"skills/bright-tech-editorial/prompt.md"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.skillId").isEmpty())
+                .andExpect(jsonPath("$.data.classpathResources").value("skills/bright-tech-editorial/prompt.md"));
+
+        mockMvc.perform(post("/api/articles").header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {
+                                  "title":"非法双选文章",
+                                  "contentHtml":"<p>不能同时选择两种来源</p>",
+                                  "skillId":%d,
+                                  "classpathResources":"skills/default-article/prompt.md"
+                                }
+                                """.formatted(testSkillId)))
+                .andExpect(status().isBadRequest());
+
         String richHtml = "<style>.card{display:grid;gap:17px}</style><section class='card' style='--accent:purple'><p style='margin-bottom:37px'>正文</p><table><tbody><tr><td>内容</td></tr></tbody></table><svg viewBox='0 0 10 10'><circle r='3'></circle></svg></section>";
         String payload = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(
                 java.util.Map.of("title","自由样式", "contentHtml",richHtml, "skillId",testSkillId));
@@ -292,12 +323,13 @@ class CoreApiIntegrationTests {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/skills/" + testSkillId)
                         .header("Authorization", authorization)).andExpect(status().isOk());
         mockMvc.perform(get("/api/skills/" + testSkillId).header("Authorization", authorization)).andExpect(status().isNotFound());
-        org.junit.jupiter.api.Assertions.assertEquals(1L, skillService.resolve(testSkillId).getId());
+        org.junit.jupiter.api.Assertions.assertEquals("skills/default-article/prompt.md",
+                skillService.resolve(testSkillId, null).classpathResources());
         // Saving an existing article with a deleted selection is still allowed.
         mockMvc.perform(put("/api/articles/" + id).header("Authorization", authorization)
                         .contentType(MediaType.APPLICATION_JSON).content(data.toString())).andExpect(status().isOk());
-        skillService.run(null);
-        org.junit.jupiter.api.Assertions.assertEquals(2L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ARTICLE_SKILL", Long.class));
+        org.junit.jupiter.api.Assertions.assertEquals(1L,
+                jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ARTICLE_SKILL", Long.class));
     }
 
     @Autowired private ink.icoding.wechat.article.skill.ArticleSkillService skillService;
@@ -307,7 +339,7 @@ class CoreApiIntegrationTests {
         List<String> llmRequestBodies = new CopyOnWriteArrayList<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/v1/responses", exchange -> respondAsFakeResponsesApi(
-                exchange, llmRequests.incrementAndGet(), llmRequestBodies));
+                exchange, llmRequests, llmRequestBodies));
         server.start();
         try {
             String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
@@ -434,9 +466,10 @@ class CoreApiIntegrationTests {
                                       "author": "测试用户",
                                       "digest": "自动化测试创建",
                                       "contentHtml": "<h2>工具改写标题</h2><p><img src=\\\"%s\\\" alt=\\\"素材库图片\\\"></p>",
-                                      "revision": 3
+                                      "revision": 3,
+                                      "skillId": %d
                                     }
-                                    """.formatted(localImageUrl)))
+                                    """.formatted(localImageUrl, testSkillId)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.revision").value(4))
                     .andExpect(jsonPath("$.data.contentHtml").value(
@@ -452,7 +485,9 @@ class CoreApiIntegrationTests {
             mockMvc.perform(put("/api/skills/" + testSkillId).header("Authorization", authorization)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"name\":\"杂志风格\",\"content\":\"SKILL_REFRESHED 紫色网格、SVG、列表和表格\"}"))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.previewStatus").value("READY"))
+                    .andExpect(jsonPath("$.data.previewHtml").value(org.hamcrest.Matchers.containsString("示例文章标题")));
             var followUp = mockMvc.perform(post("/api/articles/1/ai/chat")
                             .header("Authorization", authorization)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -470,7 +505,9 @@ class CoreApiIntegrationTests {
                         }
                     });
             if (llmRequests.get() != 4) throw new AssertionError("第二轮应只请求 LLM 一次，实际总数为 " + llmRequests.get());
-            String restoredRequest = llmRequestBodies.get(3);
+            String restoredRequest = llmRequestBodies.stream()
+                    .filter(body -> body.contains("继续基于刚才的修改给一句总结"))
+                    .findFirst().orElseThrow(() -> new AssertionError("没有找到第二轮 LLM 请求"));
             if (!llmRequestBodies.get(0).contains("SKILL_MAGAZINE")
                     || !restoredRequest.contains("SKILL_REFRESHED")
                     || !restoredRequest.contains("function_call_output")
@@ -601,10 +638,22 @@ class CoreApiIntegrationTests {
                 + chat.getResponse().getContentAsString(StandardCharsets.UTF_8));
     }
 
-    private void respondAsFakeResponsesApi(HttpExchange exchange, int requestNumber,
+    private void respondAsFakeResponsesApi(HttpExchange exchange, AtomicInteger requestCounter,
                                            List<String> requestBodies) throws java.io.IOException {
-        requestBodies.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        requestBodies.add(requestBody);
         String events;
+        if (requestBody.contains("Skill 示例文章生成器")) {
+            String html = "<main style='min-height:100vh;padding:32px;background:#f4efff;color:#2d1748'>"
+                    + "<h1 style='margin:0 0 20px;font-size:36px'>示例文章标题</h1>"
+                    + "<p style='margin:0;line-height:1.9'>这是一篇用于验证用户 Skill 的紫色示例文章。</p></main>";
+            events = "data: {\"type\":\"response.output_text.delta\",\"delta\":\"" + html + "\"}\n\n"
+                    + "data: {\"type\":\"response.output_text.done\"}\n\n"
+                    + "data: {\"type\":\"response.completed\",\"response\":{\"output\":[],\"usage\":{\"input_tokens\":30,\"output_tokens\":20}}}\n\n";
+            respondSse(exchange, events);
+            return;
+        }
+        int requestNumber = requestCounter.incrementAndGet();
         if (requestNumber == 1) {
             String tool = "{\"type\":\"function_call\",\"id\":\"fc-read-1\",\"call_id\":\"call-read-1\",\"name\":\"read_article\",\"arguments\":\"{\\\"reason\\\":\\\"读取浏览器当前文章\\\"}\"}";
             String duplicate = "{\"type\":\"function_call\",\"id\":\"fc-read-duplicate\",\"call_id\":\"call-read-duplicate\",\"name\":\"read_article\",\"arguments\":\"{\\\"reason\\\":\\\"读取浏览器当前文章\\\"}\"}";
@@ -627,6 +676,10 @@ class CoreApiIntegrationTests {
                     + "data: {\"type\":\"response.output_text.done\"}\n\n"
                     + "data: {\"type\":\"response.completed\",\"response\":{\"output\":[],\"usage\":{\"input_tokens\":40,\"output_tokens\":8}}}\n\n";
         }
+        respondSse(exchange, events);
+    }
+
+    private void respondSse(HttpExchange exchange, String events) throws java.io.IOException {
         byte[] bytes = events.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "text/event-stream; charset=utf-8");
         exchange.sendResponseHeaders(200, 0);

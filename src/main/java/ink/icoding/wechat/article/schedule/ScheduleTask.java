@@ -18,6 +18,8 @@ public class ScheduleTask extends PO {
     private String name;
     private Long accountId;
     private Long skillId;
+    @TableField(length = 500)
+    private String classpathResources;
     @TableField(exist = false, link = WechatAccount.class, linkField = "name", self = "accountId", target = "id")
     private String accountName;
     private Long coverAssetId;

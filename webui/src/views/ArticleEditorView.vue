@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ArticleHtmlEditor from '../components/ArticleHtmlEditor.vue'
+import ArticleSkillSelector from '../components/ArticleSkillSelector.vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { api, stream, uploadAsset } from '../api'
@@ -24,13 +25,18 @@ const toolRuntime=new Map()
 let saveTimer, wechatHideTimer, savePromise=null, applyingServerArticle=false, editSequence=0, contentSequence=0
 marked.setOptions({gfm:true,breaks:true})
 const editor=ref(), skills=ref([])
+const skillOptionValue=skill=>skill.classpathResources?`builtin:${skill.classpathResources}`:`user:${skill.id}`
+const skillSelection=computed({
+  get(){if(article.value?.classpathResources)return `builtin:${article.value.classpathResources}`;if(article.value?.skillId!=null)return `user:${article.value.skillId}`;return ''},
+  set(value){if(!article.value)return;article.value.skillId=value.startsWith('user:')?Number(value.slice(5)):null;article.value.classpathResources=value.startsWith('builtin:')?value.slice(8):null}
+})
 function onContentUpdate(){contentSequence+=1;markDirty()}
 const wordCount=computed(()=>editor.value?.getText().replace(/\s/g,'').length||0)
 const accountName=computed(()=>accounts.value.find(a=>String(a.id)===String(article.value?.accountId))?.name||t('editor.noAccount'))
 function markDirty(){if(!ready.value||applyingServerArticle)return;dirty.value=true;editSequence+=1;clearTimeout(saveTimer);if(!interactionBusy.value)saveTimer=setTimeout(()=>save(false),1800)}
 watch([
   ()=>article.value?.title,()=>article.value?.digest,()=>article.value?.author,
-  ()=>article.value?.skillId,()=>article.value?.accountId,()=>article.value?.sourceUrl,()=>article.value?.coverAssetId,
+  ()=>article.value?.skillId,()=>article.value?.classpathResources,()=>article.value?.accountId,()=>article.value?.sourceUrl,()=>article.value?.coverAssetId,
 ],markDirty,{flush:'sync'})
 function applyServerArticle(updated,replaceContent=false){applyingServerArticle=true;article.value={...article.value,...updated};if(replaceContent)editor.value.setContent(updated.contentHtml||'<p></p>',false);applyingServerArticle=false}
 async function load(){try{const [a,acc,msg,sk]=await Promise.all([api(`/api/articles/${route.params.id}`),api('/api/accounts'),api(`/api/articles/${route.params.id}/ai/messages`),api('/api/skills')]);article.value=a;accounts.value=acc;messages.value=msg;skills.value=sk;await nextTick();editor.value.setContent(a.contentHtml||'<p></p>',false);ready.value=true;savedAt.value=formatClock(a.updatedAt)}catch(e){error.value=e.message}}
@@ -198,6 +204,7 @@ async function attachChatImages(event){
 }
 function removeChatAttachment(id){chatAttachments.value=chatAttachments.value.filter(item=>item.id!==id)}
 async function uploadInline(event){const file=event.target.files?.[0];if(!file)return;try{const asset=await uploadAsset(file,article.value.accountId);editor.value.insertImage(asset);assetPickerOpen.value=false}catch(e){error.value=e.message}event.target.value=''}
+function triggerInlineUpload(){inlineImageInput.value?.click()}
 async function uploadCover(event){const file=event.target.files?.[0];if(!file)return;try{const asset=await uploadAsset(file,article.value.accountId);article.value.coverAssetId=asset.id;article.value.coverUrl=asset.publicUrl;assetPickerOpen.value=false}catch(e){error.value=e.message}event.target.value=''}
 function formatClock(v){return v?new Date(v).toLocaleTimeString(locale.value,{hour:'2-digit',minute:'2-digit'}):''}
 onMounted(load);onBeforeUnmount(()=>{clearTimeout(saveTimer);clearTimeout(wechatHideTimer)})
@@ -230,22 +237,24 @@ onMounted(load);onBeforeUnmount(()=>{clearTimeout(saveTimer);clearTimeout(wechat
     </Transition>
     <div class="editor-body" :class="{'chat-closed':!chatOpen}">
       <section class="writing-stage">
-        <div class="metadata-strip">
-          <select v-model="article.accountId" :disabled="interactionBusy"><option :value="null">{{ t('editor.selectAccount') }}</option><option v-for="a in accounts" :key="a.id" :value="a.id">{{a.name}}</option></select>
-          <input v-model="article.author" :disabled="interactionBusy" :placeholder="t('editor.author')"><input v-model="article.sourceUrl" :disabled="interactionBusy" :placeholder="t('editor.sourceUrl')">
-          <button class="cover-picker" :disabled="interactionBusy" @click="openAssetPicker('cover')"><img v-if="article.coverUrl" :src="article.coverUrl"><Images v-else :size="17" />{{article.coverUrl?t('editor.changeCover'):t('editor.selectCover')}}</button><input ref="coverInput" type="file" accept="image/*" hidden @change="uploadCover">
+        <div class="document-controls">
+          <div class="metadata-strip">
+            <select v-model="article.accountId" :disabled="interactionBusy"><option :value="null">{{ t('editor.selectAccount') }}</option><option v-for="a in accounts" :key="a.id" :value="a.id">{{a.name}}</option></select>
+            <input v-model="article.author" :disabled="interactionBusy" :placeholder="t('editor.author')"><input v-model="article.sourceUrl" :disabled="interactionBusy" :placeholder="t('editor.sourceUrl')">
+            <button class="cover-picker" :disabled="interactionBusy" @click="openAssetPicker('cover')"><img v-if="article.coverUrl" :src="article.coverUrl"><Images v-else :size="17" />{{article.coverUrl?t('editor.changeCover'):t('editor.selectCover')}}</button><input ref="coverInput" type="file" accept="image/*" hidden @change="uploadCover">
+          </div>
         </div>
-        <label class="article-skill-picker"><Sparkles :size="16" /><span>{{ t('editor.articleSkill') }}</span><select v-model="article.skillId" :aria-label="t('editor.articleSkill')" :disabled="interactionBusy"><option :value="null">{{ t('editor.defaultSkill',{name:skills.find(s=>s.isDefault)?.name||t('editor.defaultStyle')}) }}</option><option v-if="article.skillId&&!skills.some(s=>s.id===article.skillId)" :value="article.skillId">{{ t('editor.deletedSkill') }}</option><option v-for="skill in skills" :key="skill.id" :value="skill.id">{{skill.name}}</option></select><small>{{ t('editor.skillHint') }}</small></label>
         <div class="paper">
           <input v-model="article.title" class="title-input" :disabled="interactionBusy" maxlength="64" :placeholder="t('editor.titlePlaceholder')">
           <textarea v-model="article.digest" class="digest-input" :disabled="interactionBusy" maxlength="120" rows="2" :placeholder="t('editor.digestPlaceholder')"></textarea>
-          <div class="html-asset-tools"><button class="secondary-button" :disabled="interactionBusy" @click="openAssetPicker('inline')"><Images :size="16" />{{ t('editor.insertAsset') }}</button><label class="secondary-button"><ImagePlus :size="16" />{{ t('common.upload') }}<input ref="inlineImageInput" type="file" accept="image/*" hidden :disabled="interactionBusy" @change="uploadInline"></label></div>
-          <ArticleHtmlEditor ref="editor" :disabled="interactionBusy" @update="onContentUpdate" />
+          <input ref="inlineImageInput" type="file" accept="image/*" hidden :disabled="interactionBusy" @change="uploadInline">
+          <ArticleHtmlEditor ref="editor" :disabled="interactionBusy" @update="onContentUpdate" @insert-asset="openAssetPicker('inline')" @upload-image="triggerInlineUpload" />
           <footer class="paper-footer"><span>{{ t('editor.words',{count:wordCount}) }}</span><span>{{ t('editor.version',{version:article.revision}) }}</span></footer>
         </div>
       </section>
       <aside class="ai-panel" v-show="chatOpen">
         <header><div><span class="ai-avatar"><Sparkles :size="17" /></span><div><strong>{{ t('editor.agent') }}</strong><small><i></i> {{ t('editor.collaborating') }}</small></div></div><button class="icon-button" @click="chatOpen=false"><PanelRightClose :size="18" /></button></header>
+        <section class="ai-skill-picker"><span><Sparkles :size="14" />{{ t('editor.articleSkill') }}</span><ArticleSkillSelector v-model="skillSelection" :skills="skills" :disabled="interactionBusy"/><small>{{ t('editor.skillHint') }}</small></section>
         <div class="ai-context"><Bot :size="15" /><span>{{aiBusy?t('editor.editingVersion',{version:article.revision}):t('editor.contextVersion',{version:article.revision})}}</span><Check :size="14" /></div>
         <div ref="chatMessages" class="chat-messages">
           <div v-if="!messages.length" class="ai-welcome"><span><Sparkles /></span><strong>{{ t('editor.welcome') }}</strong><p>{{ t('editor.welcomeDescription') }}</p><button @click="instruction=t('editor.checkStructure')">{{ t('editor.checkStructure') }}</button><button @click="instruction=t('editor.improveWechatLayout')">{{ t('editor.improveWechatLayout') }}</button></div>
@@ -272,5 +281,6 @@ onMounted(load);onBeforeUnmount(()=>{clearTimeout(saveTimer);clearTimeout(wechat
 </template>
 
 <style scoped>
-.article-skill-picker{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 auto 16px;max-width:860px;font-size:13px;color:#526159}.article-skill-picker select{border:1px solid #dde2dc;border-radius:7px;padding:7px;background:white;max-width:100%}.article-skill-picker small{color:#89968e}.html-asset-tools{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.document-controls{max-width:860px;margin:0 auto 16px;padding:12px;background:rgba(255,255,255,.92);border:1px solid #dfe4df;border-radius:12px;box-shadow:0 4px 16px rgba(20,38,31,.035)}
+.ai-skill-picker{margin:12px 12px 0;padding:10px;border:1px solid #dfe7e2;border-radius:9px;background:#fff;display:grid;grid-template-columns:1fr;gap:7px}.ai-skill-picker>span{display:flex;align-items:center;gap:6px;color:#3f574c;font-size:11px;font-weight:700}.ai-skill-picker>span svg{color:#28785a}.ai-skill-picker>small{color:#8b968f;font-size:9px}
 </style>

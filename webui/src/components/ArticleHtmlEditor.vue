@@ -1,12 +1,13 @@
 <script setup>
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from '../i18n'
+import { Images, ImagePlus } from 'lucide-vue-next'
 
 const props = defineProps({ content: { type: String, default: '<p></p>' }, readonly: Boolean, disabled: Boolean })
 const { t } = useI18n()
-const emit = defineEmits(['update'])
-const frame = ref(), sourceMode = ref(false), html = ref(props.content), height = ref(550)
-let observer, selection, attachedDocument
+const emit = defineEmits(['update', 'insert-asset', 'upload-image'])
+const frame = ref(), sourceHost = ref(), sourceMode = ref(false), html = ref(props.content), height = ref(550)
+let observer, selection, attachedDocument, monacoApi, sourceEditor, sourceChangeDisposable, syncingSource = false, monacoLoadPromise
 let history = [html.value], historyIndex = 0
 function record() {
   if (history[historyIndex] === html.value) return
@@ -80,9 +81,42 @@ function loaded() {
   observer = new ResizeObserver(measure)
   observer.observe(doc.body)
 }
-function setContent(value, notify = false) { html.value = value ?? '<p></p>'; render(); if (notify) { record(); emit('update') } else { history = [html.value]; historyIndex = 0 } }
-function commitSource(event) { html.value = event.target.value; record(); emit('update') }
-async function toggleSource() { sourceMode.value = !sourceMode.value; await nextTick(); if (!sourceMode.value) render() }
+function syncSourceEditor() {
+  if (!sourceEditor || sourceEditor.getValue() === html.value) return
+  syncingSource = true; sourceEditor.setValue(html.value); syncingSource = false
+}
+async function loadMonaco() {
+  if (monacoApi) return monacoApi
+  if (!monacoLoadPromise) monacoLoadPromise = Promise.all([
+    import('monaco-editor/esm/vs/editor/editor.api'),
+    import('monaco-editor/esm/vs/language/html/monaco.contribution'),
+    import('monaco-editor/esm/vs/editor/editor.worker?worker'),
+    import('monaco-editor/esm/vs/language/html/html.worker?worker'),
+  ]).then(([monaco, _htmlContribution, editorWorkerModule, htmlWorkerModule]) => {
+    const EditorWorker = editorWorkerModule.default, HtmlWorker = htmlWorkerModule.default
+    globalThis.MonacoEnvironment = { getWorker(_moduleId, label) { return label === 'html' ? new HtmlWorker() : new EditorWorker() } }
+    monacoApi = monaco
+    return monaco
+  })
+  return monacoLoadPromise
+}
+async function initSourceEditor() {
+  if (sourceEditor || !sourceHost.value) return
+  const monaco = await loadMonaco()
+  if (!sourceHost.value || sourceEditor) return
+  sourceEditor = monaco.editor.create(sourceHost.value, {
+    value: html.value, language: 'html', theme: 'vs-light', readOnly: props.disabled,
+    automaticLayout: true, ariaLabel: t('htmlEditor.sourceLabel'), minimap: { enabled: false },
+    fontSize: 13, lineHeight: 21, tabSize: 2, insertSpaces: true, wordWrap: 'on',
+    scrollBeyondLastLine: false, padding: { top: 14, bottom: 14 },
+  })
+  sourceChangeDisposable = sourceEditor.onDidChangeModelContent(() => {
+    if (syncingSource) return
+    html.value = sourceEditor.getValue(); record(); emit('update')
+  })
+}
+function setContent(value, notify = false) { html.value = value ?? '<p></p>'; render(); syncSourceEditor(); if (notify) { record(); emit('update') } else { history = [html.value]; historyIndex = 0 } }
+async function setSourceMode(value) { if (sourceMode.value === value) return; sourceMode.value = value; await nextTick(); if (value) await initSourceEditor(); else render() }
 function focusSelection() {
   const doc = frame.value.contentDocument
   doc.body.focus()
@@ -129,8 +163,8 @@ function insertAtBlockIndex(index, value) {
   items.splice(index, 0, ...inserted); setContent(serialize(items), true); return inserted.length
 }
 watch(() => props.content, value => setContent(value))
-watch(() => props.disabled, value => { if (frame.value?.contentDocument?.body) frame.value.contentDocument.body.contentEditable = String(!props.readonly && !value) })
-onBeforeUnmount(() => { observer?.disconnect(); attachedDocument?.removeEventListener('selectionchange', rememberSelection) })
+watch(() => props.disabled, value => { if (frame.value?.contentDocument?.body) frame.value.contentDocument.body.contentEditable = String(!props.readonly && !value); sourceEditor?.updateOptions({ readOnly: value }) })
+onBeforeUnmount(() => { observer?.disconnect(); attachedDocument?.removeEventListener('selectionchange', rememberSelection); sourceChangeDisposable?.dispose(); sourceEditor?.dispose() })
 function getText() { const content = fragment(html.value); content.querySelectorAll('style').forEach(el=>el.remove()); return content.textContent || '' }
 defineExpose({ getHTML:()=>html.value, getText, getBlocks, setContent, deleteBlocks, insertAtBlockIndex, insertImage })
 </script>
@@ -138,8 +172,9 @@ defineExpose({ getHTML:()=>html.value, getText, getBlocks, setContent, deleteBlo
 <template>
   <div class="html-editor">
     <div v-if="!readonly" class="html-editor-controls">
-      <div class="html-editor-modes"><button type="button" :class="{active:!sourceMode}" @click="sourceMode&&toggleSource()">{{ t('htmlEditor.visual') }}</button><button type="button" :class="{active:sourceMode}" @click="!sourceMode&&toggleSource()">{{ t('htmlEditor.source') }}</button><span>{{ t('htmlEditor.freeLayout') }}</span></div>
+      <div class="html-editor-tabs" role="tablist" :aria-label="t('htmlEditor.modeLabel')"><button id="visual-editor-tab" type="button" role="tab" :aria-selected="!sourceMode" aria-controls="visual-editor-panel" :class="{active:!sourceMode}" @click="setSourceMode(false)">{{ t('htmlEditor.visual') }}</button><button id="source-editor-tab" type="button" role="tab" :aria-selected="sourceMode" aria-controls="source-editor-panel" :class="{active:sourceMode}" @click="setSourceMode(true)">{{ t('htmlEditor.source') }}</button><span>{{ t('htmlEditor.freeLayout') }}</span></div>
       <div v-if="!sourceMode" class="html-format-tools" :inert="disabled">
+        <button type="button" class="asset-tool" @click="emit('insert-asset')"><Images :size="14" />{{ t('editor.insertAsset') }}</button><button type="button" class="asset-tool" @click="emit('upload-image')"><ImagePlus :size="14" />{{ t('common.upload') }}</button><i class="tool-divider" aria-hidden="true"></i>
         <button type="button" :title="t('htmlEditor.bold')" @mousedown.prevent @click="command('bold')"><b>B</b></button><button type="button" :title="t('htmlEditor.italic')" @mousedown.prevent @click="command('italic')"><i>I</i></button><button type="button" :title="t('htmlEditor.underline')" @mousedown.prevent @click="command('underline')"><u>U</u></button><button type="button" :title="t('htmlEditor.strike')" @mousedown.prevent @click="command('strikeThrough')"><s>S</s></button>
         <select :aria-label="t('htmlEditor.paragraphType')" @change="command('formatBlock',$event.target.value);$event.target.value='' "><option value="">{{ t('htmlEditor.paragraph') }}</option><option value="p">{{ t('htmlEditor.body') }}</option><option value="h1">{{ t('htmlEditor.headingOne') }}</option><option value="h2">{{ t('htmlEditor.headingTwo') }}</option><option value="h3">{{ t('htmlEditor.headingThree') }}</option><option value="blockquote">{{ t('htmlEditor.quote') }}</option><option value="pre">{{ t('htmlEditor.code') }}</option></select>
         <select :aria-label="t('htmlEditor.fontSize')" @change="blockStyle('font-size',$event.target.value);$event.target.value=''"><option value="">{{ t('htmlEditor.fontSize') }}</option><option v-for="n in [12,14,16,18,20,24,28,32,48]" :value="`${n}px`">{{n}}</option></select>
@@ -150,11 +185,11 @@ defineExpose({ getHTML:()=>html.value, getText, getBlocks, setContent, deleteBlo
         <button type="button" @mousedown.prevent @click="link">{{ t('htmlEditor.link') }}</button><button type="button" @mousedown.prevent @click="insertHtml('<hr>')">{{ t('htmlEditor.divider') }}</button><button type="button" @mousedown.prevent @click="insertHtml('<table style=&quot;width:100%;border-collapse:collapse&quot;><tbody>'+Array.from({length:3},()=>'<tr>'+Array.from({length:3},()=>`<td style=&quot;border:1px solid #ccc;padding:8px&quot;>${t('htmlEditor.tableContent')}</td>`).join('')+'</tr>').join('')+'</tbody></table>')">{{ t('htmlEditor.table') }}</button>
       </div>
     </div>
-    <textarea v-if="sourceMode" class="html-source" :aria-label="t('htmlEditor.sourceLabel')" :value="html" :disabled="disabled" spellcheck="false" @input="commitSource"></textarea>
-    <iframe v-show="!sourceMode" ref="frame" :title="readonly?t('htmlEditor.previewTitle'):t('htmlEditor.editTitle')" class="html-canvas" sandbox="allow-same-origin" :srcdoc="frameDocument" :style="{height:`${height}px`}" @load="loaded"></iframe>
+    <div v-show="sourceMode" id="source-editor-panel" ref="sourceHost" class="html-source" role="tabpanel" aria-labelledby="source-editor-tab"></div>
+    <iframe v-show="!sourceMode" id="visual-editor-panel" ref="frame" :title="readonly?t('htmlEditor.previewTitle'):t('htmlEditor.editTitle')" class="html-canvas" role="tabpanel" aria-labelledby="visual-editor-tab" sandbox="allow-same-origin" :srcdoc="frameDocument" :style="{height:`${height}px`}" @load="loaded"></iframe>
   </div>
 </template>
 
 <style scoped>
-.html-editor{width:100%;min-width:0}.html-editor-controls{border-block:1px solid #eee;margin-bottom:24px;padding:10px 0}.html-editor-modes,.html-format-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.html-editor-modes{margin-bottom:8px}.html-editor-modes span{font-size:11px;color:#999;margin-left:auto}.html-editor button,.html-editor select{font:inherit;font-size:12px;border:1px solid #e5e7eb;border-radius:5px;background:white;padding:5px 8px;cursor:pointer}.html-editor button.active{background:#e6f6ee;color:#087d49}.html-format-tools label{font-size:12px;display:flex;align-items:center;gap:3px}.html-format-tools input{width:24px;height:24px;border:0;padding:0}.html-canvas{display:block;width:100%;border:0;background:white}.html-source{width:100%;min-height:650px;resize:vertical;font:13px/1.7 ui-monospace,monospace;padding:16px;border:1px solid #ddd;border-radius:8px;tab-size:2}
+.html-editor{width:100%;min-width:0}.html-editor-controls{border:1px solid #e2e7e3;border-radius:10px;background:#f8faf8;margin-bottom:24px;padding:0 8px 8px}.html-editor-tabs,.html-format-tools{display:flex;gap:5px;align-items:center}.html-editor-tabs{height:43px;border-bottom:1px solid #e2e7e3;margin:0 -8px 8px;padding:0 8px}.html-editor-tabs span{font-size:11px;color:#8b968f;margin-left:auto}.html-format-tools{flex-wrap:wrap}.html-editor button,.html-editor select{flex:0 0 auto;font:inherit;font-size:11px;border:1px solid #e0e5e1;border-radius:6px;background:white;color:#536159;padding:5px 8px;cursor:pointer}.html-editor button:hover,.html-editor select:hover{border-color:#aebcb4;color:#1f7155}.html-editor button.active{border-color:#c7dfd3;background:#e6f6ee;color:#087d49}.html-editor .html-editor-tabs button{all:unset;box-sizing:border-box;align-self:stretch;display:flex;align-items:center;position:relative;padding:0 13px;color:#77847d;font-size:12px;font-weight:600;cursor:pointer}.html-editor .html-editor-tabs button::after{content:'';position:absolute;right:13px;bottom:-1px;left:13px;height:2px;background:transparent}.html-editor .html-editor-tabs button:hover{color:#246f55}.html-editor .html-editor-tabs button.active{color:#1d684d}.html-editor .html-editor-tabs button.active::after{background:#287b5c}.html-editor .html-editor-tabs button:focus-visible{outline:2px solid rgba(40,123,92,.35);outline-offset:-4px;border-radius:4px}.html-editor button.asset-tool{display:inline-flex;align-items:center;gap:5px;border-color:#cddfd6;color:#256f55}.tool-divider{width:1px;height:22px;background:#dfe5e1;margin:0 2px}.html-format-tools label{flex:0 0 auto;height:28px;border:1px solid #e0e5e1;border-radius:6px;background:#fff;padding:0 5px;font-size:11px;display:flex;align-items:center;gap:3px}.html-format-tools input{width:20px;height:20px;border:0;padding:0}.html-canvas{display:block;width:100%;border:1px solid #e7ebe8;border-radius:8px;background:white}.html-source{width:100%;height:650px;border:1px solid #dfe4e0;border-radius:8px;overflow:hidden}
 </style>

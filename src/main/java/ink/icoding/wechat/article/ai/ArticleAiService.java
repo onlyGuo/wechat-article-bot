@@ -53,6 +53,17 @@ public class ArticleAiService {
     private static final Set<String> BROWSER_TOOL_NAMES = Set.of(
             "read_article", "read_blocks", "delete_blocks", "insert_blocks", "replace_blocks",
             "update_metadata", "update_cover");
+    private static final String WECHAT_INLINE_STYLE_REQUIREMENTS = """
+
+            【微信公众号 HTML 强制规则】
+            这是系统级硬性限制，优先于文章 Skill、示例和用户要求：
+            1. 所有视觉样式必须直接写在对应 HTML 元素的 style 内联属性中；需要段间距、文字颜色、字号、行高、背景、边框或对齐时，必须在实际需要该效果的每个元素上明确填写。
+            2. 禁止输出 <style> 标签、CSS 选择器及“选择器 { 属性:值 }”形式的独立 CSS 规则，禁止引用外部 CSS。
+            3. 禁止输出 class 属性或依赖 class 名称应用样式，也不要依赖父元素的样式继承。允许使用 style 属性中的普通 CSS 声明。
+            4. 禁止使用 div 元素；原本准备使用 div 的内容必须改用 section 元素，并把所需样式直接写入该 section 的 style 属性。
+            5. insert_blocks、replace_blocks 和 save_article_draft 提交的所有 HTML 都必须遵守以上规则；如果 Skill 中的示例使用了 style 标签、选择器、class 或 div，必须先改写成逐元素内联样式的无 div HTML 再提交。
+            【强制规则结束】
+            """;
     private static final String AGENT_DESCRIPTION = """
             微信公众号文章编辑智能体，通过工具直接操作用户浏览器中的富文本编辑器。
 
@@ -71,7 +82,7 @@ public class ArticleAiService {
             12. 不要创建计划或子智能体；只使用文章编辑工具完成当前请求。
             13. 需要配图时优先检查用户本轮上传的图片和素材库；也可以生成、编辑或搜索并导入网络图片。所有图片必须先成为素材。正文配图使用返回的publicUrl通过insert_blocks插入语义合适的位置；文章封面使用返回的assetId调用update_cover。
             14. 使用网络资料必须先搜索再浏览来源页；网络图片必须通过 import_web_image 保存来源，不能直接把外链图片插入文章。
-            15. 按本轮选择的文章 Skill 与用户要求创作。HTML结构和CSS样式可以自由使用，包括列表、表格、嵌套容器、SVG、class和style标签；无需迁就编辑器的标签或样式范围。不要加入脚本、事件处理器等可执行内容。
+            15. 按本轮选择的文章 Skill 与用户要求创作，允许使用列表、表格和SVG；所有样式必须逐元素写入style属性，禁止样式表、CSS选择器、class属性和div元素，原本使用div的内容改用section。不要加入脚本、事件处理器等可执行内容。
             """;
     private static final String SCHEDULED_AGENT_DESCRIPTION = """
             微信公众号定时文章创作智能体。每次执行都从当前任务要求出发，自主研究并完成一篇新文章。
@@ -81,7 +92,7 @@ public class ArticleAiService {
             2. 涉及时效性或外部事实时，先使用search_web搜索，再用browse_webpage阅读重要来源；不得把搜索摘要当成完整事实依据。
             3. 可以使用素材库、网络图片导入、图片生成和图片编辑工具。正文图片使用工具返回的publicUrl，封面通过set_article_draft_cover设置。
             4. 网络图片必须先通过import_web_image进入素材库，禁止在正文中直接引用外链图片。
-            5. 按本轮文章 Skill 和任务要求自由组织HTML结构与CSS样式，包括列表、表格、SVG和style标签。不得加入脚本或事件处理器。事实、数据和引语必须准确，引用方式由Skill或任务要求决定。
+            5. 按本轮文章 Skill 和任务要求组织HTML结构，允许使用列表、表格和SVG；所有样式必须逐元素写入style属性，禁止样式表、CSS选择器、class属性和div元素，原本使用div的内容改用section。不得加入脚本或事件处理器。事实、数据和引语必须准确，引用方式由Skill或任务要求决定。
             6. 完成研究和写作后必须调用save_article_draft提交完整文章；未调用该工具就不算完成任务。
             7. 工具成功后再陈述结果。不要创建计划或子智能体，不要尝试自行发布；草稿、微信草稿或发布动作由任务系统统一执行。
             """;
@@ -200,7 +211,10 @@ public class ArticleAiService {
             AgentClientSession agentSession = storedSession == null
                     ? agent.createSession()
                     : agent.getSessionFromSerialization(storedSession.getSerializedSession());
-            AgentSessionResult result = agentSession.command(commandWithAttachments(skillService.prompt(session.article.getSkillId()) + "\n本轮用户要求：\n" + instruction, session.attachedAssets),
+            AgentSessionResult result = agentSession.command(commandWithAttachments(skillService.prompt(
+                                    session.article.getSkillId(), session.article.getClasspathResources())
+                                    + "\n本轮用户要求：\n" + instruction + WECHAT_INLINE_STYLE_REQUIREMENTS,
+                            session.attachedAssets),
                             sessionAttachments(session.attachedAssets))
                     .then(new AgentResultHandler() {
                         @Override
@@ -268,7 +282,9 @@ public class ArticleAiService {
     private AgentClient createArticleAgent(LlmConfigService.RuntimeConfig config, EditorSession editorSession) {
         AgentClient agent = new AgentClient();
         agent.setName("墨舟微信公众号文章编辑智能体");
-        agent.setDescription(AGENT_DESCRIPTION + skillService.prompt(editorSession.article.getSkillId()));
+        agent.setDescription(AGENT_DESCRIPTION + skillService.prompt(
+                        editorSession.article.getSkillId(), editorSession.article.getClasspathResources())
+                + WECHAT_INLINE_STYLE_REQUIREMENTS);
         agent.setModel(createModel(config));
         List<ink.icoding.llm.core.tool.Tool> tools = new ArrayList<>(ArticleEditorTools.all((toolName, paramJson) ->
                 editorSession.requestTool(toolName, paramJson, null)));
@@ -331,7 +347,8 @@ public class ArticleAiService {
         ArticleService.ArticleRequest request = new ArticleService.ArticleRequest(
                 original.getAccountId(), document.title(), original.getAuthor(), document.digest(),
                 document.contentHtml(), coverAssetId, coverUrl,
-                original.getSourceUrl(), original.getRevision(), original.getSkillId());
+                original.getSourceUrl(), original.getRevision(), original.getSkillId(),
+                original.getClasspathResources());
         return articleService.updateByAi(original.getId(), request,
                 "AI 工具编辑（" + session.toolCalls.get() + " 次工具调用）", session.user.id());
     }
@@ -344,7 +361,9 @@ public class ArticleAiService {
         ToolMutationDeduplicator mediaMutations = new ToolMutationDeduplicator();
         AgentClient agent = new AgentClient();
         agent.setName("墨舟定时文章创作智能体");
-        agent.setDescription(SCHEDULED_AGENT_DESCRIPTION + skillService.prompt(request.skillId()));
+        agent.setDescription(SCHEDULED_AGENT_DESCRIPTION + skillService.prompt(
+                        request.skillId(), request.classpathResources())
+                + WECHAT_INLINE_STYLE_REQUIREMENTS);
         agent.setModel(createModel(config));
         List<ink.icoding.llm.core.tool.Tool> tools = new ArrayList<>(ScheduledArticleTools.all(draftState));
         tools.addAll(mediaTools.create(request.accountId(), request.userId(), mediaMutations::execute));
@@ -365,10 +384,12 @@ public class ArticleAiService {
 
                 本次创作要求：
                 %s
+
+                %s
                 """.formatted(
                 ZonedDateTime.now(ZoneId.of(request.timezone())),
                 request.accountId() == null ? "未指定，仅创建本地文章" : "公众号ID " + request.accountId(),
-                request.outputMode(), deliveryRequirement, request.instruction());
+                request.outputMode(), deliveryRequirement, request.instruction(), WECHAT_INLINE_STYLE_REQUIREMENTS);
 
         AgentSessionResult result = agent.createSession().command(command).then(new AgentResultHandler() {
             @Override
@@ -685,7 +706,8 @@ public class ArticleAiService {
     }
 
     public record ScheduledAgentRequest(Long accountId, Long userId, Long defaultCoverAssetId,
-                                        String timezone, String outputMode, String instruction, Long skillId) {
+                                        String timezone, String outputMode, String instruction, Long skillId,
+                                        String classpathResources) {
     }
 
     public record ScheduledAgentResult(ScheduledArticleTools.Draft draft, String message,

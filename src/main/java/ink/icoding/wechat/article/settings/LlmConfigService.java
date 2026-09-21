@@ -67,14 +67,23 @@ public class LlmConfigService {
 
     public RuntimeConfig runtime() {
         LlmConfig config = required();
-        String apiKey = config.getApiKeyEncrypted() == null ? null : cryptoService.decrypt(config.getApiKeyEncrypted());
+        String apiKey = decryptCredential(config.getApiKeyEncrypted(), "LLM API Key");
         String imageApiKey = config.getImageApiKeyEncrypted() == null
-                ? apiKey : cryptoService.decrypt(config.getImageApiKeyEncrypted());
+                ? apiKey : decryptCredential(config.getImageApiKeyEncrypted(), "图片服务 API Key");
         return new RuntimeConfig(Boolean.TRUE.equals(config.getEnabled()), config.getProvider(), normalizeBaseUrl(config.getBaseUrl()),
                 config.getModelName(), apiKey, config.getTemperature(), config.getMaxTokens(),
                 blankToNull(config.getImageBaseUrl()) == null ? normalizeBaseUrl(config.getBaseUrl())
                         : normalizeBaseUrl(config.getImageBaseUrl()),
                 blankToNull(config.getImageModelName()), imageApiKey);
+    }
+
+    String decryptCredential(String encrypted, String name) {
+        if (encrypted == null) return null;
+        try {
+            return cryptoService.decrypt(encrypted);
+        } catch (IllegalStateException error) {
+            throw new BusinessException(name + " 解密失败：APP_SECRET_KEY 与保存凭据时不一致，或已保存凭据已损坏。请恢复原 APP_SECRET_KEY，或在系统设置中重新填写该 API Key");
+        }
     }
 
     private synchronized LlmConfig required() {

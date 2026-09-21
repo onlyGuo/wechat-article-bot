@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>霓虹信号：夜间构建</title>
+</head>
+<body style="margin:0;padding:0;background:#05010a;color:#d4c8f0;font-family:'Courier New',Courier,monospace;line-height:1.65;">
+
+<main style="max-width:38rem;margin:0 auto;padding:2.5rem 1.25rem 4.5rem;">
+
+  <header style="position:relative;border:1px solid #ff2bd6;box-shadow:0 0 18px rgba(255,43,214,0.25), inset 0 0 40px rgba(80,20,120,0.35);padding:2rem 1.5rem;margin-bottom:1.5rem;background:linear-gradient(160deg,#12002b 0%,#05010a 55%,#0a0030 100%);">
+    <p style="margin:0 0 1rem;font-size:0.75rem;letter-spacing:0.4em;color:#00f0ff;text-transform:uppercase;">SIGNAL // 03:17 AM</p>
+    <h1 style="margin:0 0 0.85rem;font-size:1.85rem;font-weight:700;line-height:1.25;color:#ffffff;text-shadow:0 0 12px rgba(0,240,255,0.65), 0 0 28px rgba(255,43,214,0.45);">霓虹信号：夜间构建</h1>
+    <p style="margin:0 0 1rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:0.95rem;color:#b8a8e0;">赛博霓虹向排版样张。约束不变：无 div、无 JS、无 class，样式全部内联。</p>
+    <p style="margin:0;font-size:0.78rem;color:#7a6aaa;">channel: night-build · voltage: high · noise: controlled</p>
+  </header>
+
+  <section style="border:1px solid #2a1050;background:#0a0418;padding:1.15rem 1.25rem;margin-bottom:1.25rem;box-shadow:0 0 12px rgba(120,0,255,0.15);">
+    <p style="margin:0 0 0.7rem;font-size:0.72rem;letter-spacing:0.25em;color:#00f0ff;">// telemetry</p>
+    <p style="margin:0 0 0.35rem;font-size:0.9rem;color:#c9b8ff;">uptime ........ <span style="color:#39ff14;">23h 41m</span></p>
+    <p style="margin:0 0 0.35rem;font-size:0.9rem;color:#c9b8ff;">build ........ <span style="color:#39ff14;">PASS</span></p>
+    <p style="margin:0 0 0.35rem;font-size:0.9rem;color:#c9b8ff;">glitch ....... <span style="color:#ff2bd6;">3 minor</span></p>
+    <p style="margin:0;font-size:0.9rem;color:#c9b8ff;">focus ........ <span style="color:#00f0ff;">HOLD</span></p>
+  </section>
+
+  <section style="margin:0 0 1.25rem;padding:1.35rem 1.25rem;border:1px solid #00f0ff;box-shadow:0 0 16px rgba(0,240,255,0.2);background:rgba(0,20,40,0.85);">
+    <h2 style="margin:0 0 0.85rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:1.05rem;font-weight:700;color:#00f0ff;letter-spacing:0.06em;">01 · 信号从哪来</h2>
+    <p style="margin:0 0 0.75rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;color:#d4c8f0;">夜里推进的东西，往往不是灵感，而是噪声被滤过之后剩下的那一条清晰路径。</p>
+    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;color:#8a7ab0;">霓虹不是装饰，是状态灯：绿表示通，粉表示扰，青表示仍在观测。</p>
+  </section>
+
+  <section style="margin:0 0 1.25rem;">
+    <h2 style="margin:0 0 0.9rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:1.05rem;font-weight:700;color:#e8dcff;">02 · 三条夜间协议</h2>
+
+    <article style="margin:0 0 0.85rem;border:1px solid #39ff14;padding:1rem 1.1rem;background:linear-gradient(90deg,#041408 0%,#0a0418 100%);box-shadow:0 0 10px rgba(57,255,20,0.2);">
+      <p style="margin:0 0 0.4rem;font-size:0.75rem;color:#39ff14;letter-spacing:0.15em;">PROTOCOL / GREEN</p>
+      <h3 style="margin:0 0 0.45rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:0.98rem;font-weight:700;color:#eafff0;">一次只开一条链路</h3>
+      <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:0.92rem;color:#9ab8a0;">多开窗口不等于多线推进。绿灯只亮在正在合并的那条路上。</p>
+    </article>
+
+    <article style="margin:0 0 0.85rem;border:1px solid #ff2bd6;padding:1rem 1.1rem;background:linear-gradient(90deg,#180418 0%,#0a0418 100%);box-shadow:0 0 10px rgba(255,43,214,0.22);">
+      <p style="margin:0 0 0.4rem;font-size:0.75rem;color:#ff2bd6;letter-spacing:0.15em;">PROTOCOL / PINK</p>
+      <h3 style="margin:0 0 0.45rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:0.98rem;font-weight:700;color:#ffe6f8;">故障必须写进日志</h3>
+      <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:0.92rem;color:#c49ab8;">粉灯是提醒不是羞辱。写下时间、现象、下一步，天亮才不用重来。</p>
+    </article>
+
+    <article style="margin:0;border:1px solid #7c5cff;padding:1rem 1.1rem;background:linear-gradient(90deg,#0c0620 0%,#0a0418 100%);box-shadow:0 0 10px rgba(124,92,255,0.25);">
+      <p style="margin:0 0 0.4rem;font-size:0.75rem;color:#b49cff;letter-spacing:0.15em;">PROTOCOL / VIOLET</p>
+      <h3 style="margin:0 0 0.45rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:0.98rem;font-weight:700;color:#efe8ff;">交付前先静音</h3>
+      <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:0.92rem;color:#a898c8;">关掉无关频道，只保留验收清单。霓虹再亮，也照不亮空的 diff。</p>
+    </article>
+  </section>
+
+  <section style="margin:0 0 1.25rem;border:1px dashed #ff2bd6;padding:1.25rem;background:#0a0418;">
+    <h2 style="margin:0 0 0.85rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:0.98rem;font-weight:700;color:#ff2bd6;">scan / 自检</h2>
+    <ul style="margin:0;padding:0;list-style:none;">
+      <li style="padding:0.45rem 0;border-bottom:1px solid #1a0a30;font-size:0.9rem;color:#d4c8f0;"><span style="color:#39ff14;">[OK]</span> 今晚只推进一件事</li>
+      <li style="padding:0.45rem 0;border-bottom:1px solid #1a0a30;font-size:0.9rem;color:#d4c8f0;"><span style="color:#39ff14;">[OK]</span> 异常有记录</li>
+      <li style="padding:0.45rem 0;border-bottom:1px solid #1a0a30;font-size:0.9rem;color:#d4c8f0;"><span style="color:#ff2bd6;">[!!]</span> 是否在无意义刷新</li>
+      <li style="padding:0.45rem 0;font-size:0.9rem;color:#8a7ab0;"><span style="color:#7a6aaa;">[—]</span> 明日第一刀切哪里</li>
+    </ul>
+  </section>
+
+  <section style="margin:0 0 2rem;padding:1.5rem 1.25rem;border:1px solid #39ff14;background:linear-gradient(180deg,#041408 0%,#05010a 100%);box-shadow:0 0 20px rgba(57,255,20,0.18);">
+    <p style="margin:0 0 0.6rem;font-size:0.72rem;letter-spacing:0.28em;color:#39ff14;">// BUILD SUMMARY</p>
+    <h2 style="margin:0 0 0.75rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:1.15rem;font-weight:700;color:#eafff0;">信号清晰，比灯光更重要</h2>
+    <p style="margin:0 0 0.6rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;color:#b8d8c0;">赛博风可以炫，工作流必须静：状态可见、失败可追、下一步可指。</p>
+    <p style="margin:0;font-size:0.9rem;color:#39ff14;">ship in the dark · leave a trail</p>
+  </section>
+
+  <footer style="text-align:center;padding-top:1.25rem;border-top:1px solid #2a1050;">
+    <p style="margin:0 0 0.4rem;font-size:1rem;color:#5a4a80;letter-spacing:0.35em;">— SIGNAL LOST —</p>
+    <p style="margin:0;font-size:0.7rem;color:#3a2a60;">neon-cyber · no div · no js · no class · inline only</p>
+  </footer>
+
+</main>
+</body>
+</html>

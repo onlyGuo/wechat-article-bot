@@ -46,4 +46,18 @@ public final class ArticleContentPolicy {
         // WeChat may apply its own rendering rules; preserve the author's spacing and style here.
         return sanitize(html);
     }
+
+    public static void requireInlineStyles(String html) {
+        if (html == null || html.isBlank()) return;
+        Document document = Jsoup.parseBodyFragment(html);
+        if (!document.select("style, link[rel=stylesheet]").isEmpty()) {
+            throw new IllegalArgumentException("微信公众号正文禁止使用 style 标签、CSS 样式表或外部 CSS；请把样式逐元素写入 style 属性");
+        }
+        if (!document.select("[class]").isEmpty()) {
+            throw new IllegalArgumentException("微信公众号正文禁止使用 class 属性；请把 class 对应的样式逐元素写入 style 属性");
+        }
+        if (!document.select("div").isEmpty()) {
+            throw new IllegalArgumentException("微信公众号正文禁止使用 div 元素；请改用 section 元素并把样式写入 section 的 style 属性");
+        }
+    }
 }

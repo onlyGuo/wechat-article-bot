@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api'
 import { Plus, Bot, Play, Clock3, MoreHorizontal, X, CheckCircle2, AlertCircle, Trash2, LoaderCircle, FileText } from 'lucide-vue-next'
@@ -10,8 +10,14 @@ import { useI18n } from '../i18n'
 const router=useRouter()
 const skills=ref([]),tasks=ref([]),accounts=ref([]),assets=ref([]),error=ref(''),notice=ref(''),showForm=ref(false),showRuns=ref(false),runs=ref([]),selected=ref(null),running=ref(null)
 const { t, locale } = useI18n()
-const blank=()=>({id:null,name:'',accountId:null,skillId:null,coverAssetId:null,cronExpression:'0 0 9 * * ?',timezone:'Asia/Shanghai',aiPrompt:t('tasks.defaultInstruction'),outputMode:'LOCAL_DRAFT',enabled:true})
+const blank=()=>({id:null,name:'',accountId:null,skillId:null,classpathResources:null,coverAssetId:null,cronExpression:'0 0 9 * * ?',timezone:'Asia/Shanghai',aiPrompt:t('tasks.defaultInstruction'),outputMode:'LOCAL_DRAFT',enabled:true})
 const form=reactive(blank())
+const skillOptionValue=skill=>skill.classpathResources?`builtin:${skill.classpathResources}`:`user:${skill.id}`
+const skillSelection=computed({
+  get(){if(form.classpathResources)return `builtin:${form.classpathResources}`;if(form.skillId!=null)return `user:${form.skillId}`;return ''},
+  set(value){form.skillId=value.startsWith('user:')?Number(value.slice(5)):null;form.classpathResources=value.startsWith('builtin:')?value.slice(8):null}
+})
+const selectedSkillMissing=computed(()=>skillSelection.value&&!skills.value.some(skill=>skillOptionValue(skill)===skillSelection.value))
 let runPoller=null
 const outputLabel=value=>({LOCAL_DRAFT:t('tasks.localDraft'),WECHAT_DRAFT:t('tasks.wechatDraft'),AUTO_PUBLISH:t('tasks.autoPublish')}[value]||value)
 const fmt=value=>value?new Date(value).toLocaleString(locale.value):t('tasks.notRunYet')
@@ -54,7 +60,7 @@ onBeforeUnmount(stopRunPolling)
       <div class="full schedule-builder-field"><span>{{ t('tasks.schedule') }}</span><CronBuilder v-model="form.cronExpression" /></div>
       <label>{{ t('tasks.outputAfter') }}<select v-model="form.outputMode"><option value="LOCAL_DRAFT">{{ t('tasks.localDraft') }}</option><option value="WECHAT_DRAFT">{{ t('tasks.wechatDraft') }}</option><option value="AUTO_PUBLISH">{{ t('tasks.autoPublish') }}</option></select></label>
       <label>{{ t('tasks.cover') }}<select v-model="form.coverAssetId"><option :value="null">{{ t('tasks.agentSelectsCover') }}</option><option v-for="asset in assets" :key="asset.id" :value="asset.id">{{asset.originalName}}</option></select></label>
-      <label class="full">{{ t('tasks.articleSkill') }}<select v-model="form.skillId"><option :value="null">{{ t('tasks.followDefaultSkill',{name:skills.find(s=>s.isDefault)?.name||t('common.default')}) }}</option><option v-if="form.skillId&&!skills.some(s=>s.id===form.skillId)" :value="form.skillId">{{ t('tasks.deletedSkill') }}</option><option v-for="skill in skills" :key="skill.id" :value="skill.id">{{skill.name}}</option></select><small>{{ t('tasks.skillHint') }}</small></label>
+      <label class="full">{{ t('tasks.articleSkill') }}<select v-model="skillSelection"><option value="">{{ t('tasks.followDefaultSkill',{name:skills.find(s=>s.isDefault)?.name||t('common.default')}) }}</option><option v-if="selectedSkillMissing" :value="skillSelection">{{ t('tasks.deletedSkill') }}</option><option v-for="skill in skills" :key="skill.classpathResources||skill.id" :value="skillOptionValue(skill)">{{skill.name}}</option></select><small>{{ t('tasks.skillHint') }}</small></label>
       <label class="full">{{ t('tasks.instruction') }}<textarea v-model="form.aiPrompt" required rows="10" :placeholder="t('tasks.instructionPlaceholder')"></textarea><small>{{ t('tasks.instructionHint') }}</small></label>
       <label class="checkbox full"><input v-model="form.enabled" type="checkbox">{{ t('tasks.enableAfterSave') }}</label>
     </div><div class="form-actions"><button type="button" class="secondary-button" @click="showForm=false">{{ t('common.cancel') }}</button><button class="primary-button">{{ t('tasks.save') }}</button></div></form></div>

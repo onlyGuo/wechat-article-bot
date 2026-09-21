@@ -75,10 +75,13 @@ public class ArticleService {
     }
 
     private Article createWithUser(ArticleRequest request, String sourceType, Long userId) {
-        if (!"SCHEDULED".equals(sourceType)) skillService.validateSelection(request.skillId());
+        if (!"SCHEDULED".equals(sourceType)) {
+            skillService.validateSelection(request.skillId(), request.classpathResources());
+        }
         Article article = new Article();
         article.setAccountId(request.accountId());
         article.setSkillId(request.skillId());
+        article.setClasspathResources(request.classpathResources());
         article.setTitle(request.title() == null || request.title().isBlank() ? "未命名文章" : request.title());
         article.setAuthor(request.author());
         article.setDigest(request.digest());
@@ -117,12 +120,16 @@ public class ArticleService {
 
     private Article updateWithUser(Long id, ArticleRequest request, String changeSource, String summary, Long userId) {
         Article existing = required(id);
-        if (!Objects.equals(existing.getSkillId(), request.skillId())) skillService.validateSelection(request.skillId());
+        if (!Objects.equals(existing.getSkillId(), request.skillId())
+                || !Objects.equals(existing.getClasspathResources(), request.classpathResources())) {
+            skillService.validateSelection(request.skillId(), request.classpathResources());
+        }
         if (request.revision() == null) throw new BusinessException("缺少文章版本号");
         Article article = new Article();
         article.setId(id);
         article.setAccountId(request.accountId());
         article.setSkillId(request.skillId());
+        article.setClasspathResources(request.classpathResources());
         article.setTitle(request.title() == null || request.title().isBlank() ? "未命名文章" : request.title());
         article.setAuthor(request.author());
         article.setDigest(request.digest());
@@ -155,7 +162,7 @@ public class ArticleService {
         if (target == null) throw new BusinessException("指定版本不存在");
         ArticleRequest request = new ArticleRequest(current.getAccountId(), target.getTitle(), current.getAuthor(),
                 target.getDigest(), target.getContentHtml(), current.getCoverAssetId(), current.getCoverUrl(),
-                current.getSourceUrl(), current.getRevision(), current.getSkillId());
+                current.getSourceUrl(), current.getRevision(), current.getSkillId(), current.getClasspathResources());
         return update(id, request, "ROLLBACK", "回滚到版本 " + revision);
     }
 
@@ -311,6 +318,7 @@ public class ArticleService {
     private boolean sameEditableContent(Article left, Article right) {
         return Objects.equals(left.getAccountId(), right.getAccountId())
                 && Objects.equals(left.getSkillId(), right.getSkillId())
+                && Objects.equals(left.getClasspathResources(), right.getClasspathResources())
                 && Objects.equals(left.getTitle(), right.getTitle())
                 && Objects.equals(left.getAuthor(), right.getAuthor())
                 && Objects.equals(left.getDigest(), right.getDigest())
@@ -348,7 +356,8 @@ public class ArticleService {
     }
 
     public record ArticleRequest(Long accountId, String title, String author, String digest, String contentHtml,
-                                 Long coverAssetId, String coverUrl, String sourceUrl, Integer revision, Long skillId) {}
+                                 Long coverAssetId, String coverUrl, String sourceUrl, Integer revision, Long skillId,
+                                 String classpathResources) {}
     public record PublishStatus(int code, String message, Article article) {}
     public record WechatProgress(String stage, String message, int percent) {}
 

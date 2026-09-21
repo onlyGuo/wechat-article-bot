@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>终端备忘录：把工具用回手里</title>
+</head>
+<body style="margin:0;padding:0;background:#0d1117;color:#c9d1d9;font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;line-height:1.7;font-size:15px;">
+
+<main style="max-width:40rem;margin:0 auto;padding:2rem 1.25rem 4.5rem;">
+
+  <header style="border:1px solid #30363d;background:#161b22;padding:0;margin-bottom:1.5rem;border-radius:8px;overflow:hidden;">
+    <section style="display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;background:#21262d;border-bottom:1px solid #30363d;">
+      <span style="width:10px;height:10px;border-radius:50%;background:#f85149;"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:#d29922;"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:#3fb950;"></span>
+      <span style="margin-left:0.5rem;font-size:0.75rem;color:#8b949e;">~/notes/terminal-discipline.md</span>
+    </section>
+    <section style="padding:1.5rem 1.25rem 1.35rem;">
+      <p style="margin:0 0 0.85rem;font-size:0.75rem;color:#3fb950;letter-spacing:0.08em;">$ cat intro.txt</p>
+      <h1 style="margin:0 0 0.85rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',sans-serif;font-size:1.55rem;font-weight:700;line-height:1.35;color:#e6edf3;">终端备忘录：把工具用回手里</h1>
+      <p style="margin:0 0 0.75rem;color:#8b949e;">极客风格排版示例。约束：无 div、无 JS、无 class，样式全部内联。主题可换，骨架不动。</p>
+      <p style="margin:0;font-size:0.8rem;color:#484f58;">stack: semantic-html · inline-css · zero-runtime · readable-first</p>
+    </section>
+  </header>
+
+  <section style="border:1px solid #30363d;background:#0d1117;border-radius:8px;padding:1.15rem 1.25rem;margin-bottom:1.25rem;">
+    <p style="margin:0 0 0.75rem;font-size:0.75rem;color:#8b949e;letter-spacing:0.12em;text-transform:uppercase;">// status</p>
+    <p style="margin:0 0 0.4rem;font-size:0.9rem;"><span style="color:#8b949e;">runtime</span><span style="color:#484f58;"> ........ </span><span style="color:#3fb950;">none</span></p>
+    <p style="margin:0 0 0.4rem;font-size:0.9rem;"><span style="color:#8b949e;">framework</span><span style="color:#484f58;"> .... </span><span style="color:#3fb950;">none</span></p>
+    <p style="margin:0 0 0.4rem;font-size:0.9rem;"><span style="color:#8b949e;">div.count</span><span style="color:#484f58;"> .... </span><span style="color:#3fb950;">0</span></p>
+    <p style="margin:0 0 0.4rem;font-size:0.9rem;"><span style="color:#8b949e;">class.count</span><span style="color:#484f58;"> ... </span><span style="color:#3fb950;">0</span></p>
+    <p style="margin:0;font-size:0.9rem;"><span style="color:#8b949e;">complexity</span><span style="color:#484f58;"> ... </span><span style="color:#58a6ff;">keep-it-boring</span></p>
+  </section>
+
+  <section style="border:1px solid #30363d;background:#161b22;border-radius:8px;padding:1.35rem 1.25rem;margin-bottom:1.25rem;">
+    <h2 style="margin:0 0 0.85rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',sans-serif;font-size:1.05rem;font-weight:700;color:#e6edf3;">01 · 问题在哪</h2>
+    <p style="margin:0 0 0.75rem;color:#c9d1d9;">工具越多，手越生。快捷键记了三层，真正交付时仍在页面里点来点去。</p>
+    <p style="margin:0 0 0.75rem;color:#8b949e;">极客风格不是「炫」，是把复杂度压回可观察的状态：有提示符、有状态、有下一步。</p>
+    <p style="margin:0;color:#58a6ff;">readable &gt; clever · explicit &gt; magic · one file when possible</p>
+  </section>
+
+  <section style="margin:0 0 1.25rem;">
+    <h2 style="margin:0 0 0.9rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',sans-serif;font-size:1.05rem;font-weight:700;color:#e6edf3;">02 · 三条工作约定</h2>
+
+    <article style="border:1px solid #30363d;border-radius:8px;margin:0 0 0.85rem;overflow:hidden;">
+      <section style="padding:0.45rem 0.9rem;background:#12261a;border-bottom:1px solid #238636;">
+        <span style="font-size:0.75rem;color:#3fb950;">#01 shell</span>
+      </section>
+      <section style="padding:1rem 1.1rem;background:#161b22;">
+        <h3 style="margin:0 0 0.45rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',sans-serif;font-size:0.98rem;font-weight:600;color:#e6edf3;">先写命令，再写包装</h3>
+        <p style="margin:0;color:#8b949e;">能一条命令做完的事，不要先开一个项目。终端是第一界面。</p>
+      </section>
+    </article>
+
+    <article style="border:1px solid #30363d;border-radius:8px;margin:0 0 0.85rem;overflow:hidden;">
+      <section style="padding:0.45rem 0.9rem;background:#0c2d3a;border-bottom:1px solid #1f6feb;">
+        <span style="font-size:0.75rem;color:#58a6ff;">#02 diff</span>
+      </section>
+      <section style="padding:1rem 1.1rem;background:#161b22;">
+        <h3 style="margin:0 0 0.45rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',sans-serif;font-size:0.98rem;font-weight:600;color:#e6edf3;">改动必须可回看</h3>
+        <p style="margin:0;color:#8b949e;">提交信息写「为什么」，不写「改了一下」。未来只读 diff 的人包括你自己。</p>
+      </section>
+    </article>
+
+    <article style="border:1px solid #30363d;border-radius:8px;margin:0;overflow:hidden;">
+      <section style="padding:0.45rem 0.9rem;background:#2a1a0c;border-bottom:1px solid #d29922;">
+        <span style="font-size:0.75rem;color:#d29922;">#03 log</span>
+      </section>
+      <section style="padding:1rem 1.1rem;background:#161b22;">
+        <h3 style="margin:0 0 0.45rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',sans-serif;font-size:0.98rem;font-weight:600;color:#e6edf3;">状态要能被打印</h3>
+        <p style="margin:0;color:#8b949e;">系统出问题时，先保证你能看见发生了什么，而不是先猜。</p>
+      </section>
+    </article>
+  </section>
+
+  <section style="border:1px solid #30363d;background:#161b22;border-radius:8px;margin-bottom:1.25rem;overflow:hidden;">
+    <section style="padding:0.5rem 0.9rem;background:#21262d;border-bottom:1px solid #30363d;">
+      <span style="font-size:0.75rem;color:#8b949e;">notes/checklist.sh</span>
+    </section>
+    <section style="padding:1.15rem 1.25rem;">
+      <p style="margin:0 0 0.55rem;font-size:0.9rem;"><span style="color:#3fb950;">✓</span><span style="color:#c9d1d9;"> 标题是否直接说明结果</span></p>
+      <p style="margin:0 0 0.55rem;font-size:0.9rem;"><span style="color:#3fb950;">✓</span><span style="color:#c9d1d9;"> 每段是否只有一个重点</span></p>
+      <p style="margin:0 0 0.55rem;font-size:0.9rem;"><span style="color:#3fb950;">✓</span><span style="color:#c9d1d9;"> 是否有可复制的命令/步骤</span></p>
+      <p style="margin:0 0 0.55rem;font-size:0.9rem;"><span style="color:#d29922;">!</span><span style="color:#8b949e;"> 避免：无意义缩写、先包装后实现</span></p>
+      <p style="margin:0;font-size:0.9rem;"><span style="color:#f85149;">×</span><span style="color:#8b949e;"> 禁止：div 堆布局、class 大段 CSS、暗藏 JS</span></p>
+    </section>
+  </section>
+
+  <section style="border:1px solid #238636;background:linear-gradient(180deg,#12261a 0%,#0d1117 100%);border-radius:8px;padding:1.35rem 1.25rem;margin-bottom:1.25rem;">
+    <p style="margin:0 0 0.55rem;font-size:0.75rem;color:#3fb950;letter-spacing:0.1em;">// conclusion</p>
+    <h2 style="margin:0 0 0.65rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',sans-serif;font-size:1.1rem;font-weight:700;color:#e6edf3;">工具要服务手，而不是绑架手</h2>
+    <p style="margin:0 0 0.65rem;color:#c9d1d9;">页面可以极客，过程必须无聊：结构固定、颜色克制、状态可见。</p>
+    <p style="margin:0;color:#3fb950;">ship small · keep logs · delete what you do not need</p>
+  </section>
+
+  <section style="border:1px dashed #30363d;border-radius:8px;padding:1.15rem 1.25rem;margin-bottom:2rem;">
+    <h2 style="margin:0 0 0.65rem;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',sans-serif;font-size:0.98rem;font-weight:700;color:#e6edf3;">03 · 现在就跑三条</h2>
+    <ol style="margin:0;padding-left:1.2rem;color:#c9d1d9;">
+      <li style="margin-bottom:0.45rem;">把最长的那段拆成两段</li>
+      <li style="margin-bottom:0.45rem;">给每个要点补一行「怎么做」</li>
+      <li style="margin:0;">删掉一个你其实不需要的依赖/装饰</li>
+    </ol>
+  </section>
+
+  <footer style="border-top:1px solid #21262d;padding-top:1.25rem;text-align:center;">
+    <p style="margin:0 0 0.4rem;font-size:0.85rem;color:#484f58;">— eof —</p>
+    <p style="margin:0;font-size:0.72rem;color:#30363d;">semantic tags only · no div · no js · no class · inline styles</p>
+  </footer>
+
+</main>
+
+</body>
+</html>

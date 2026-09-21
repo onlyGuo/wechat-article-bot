@@ -69,11 +69,12 @@ public class TaskExecutionService {
         try {
             ArticleAiService.ScheduledAgentResult result = aiService.runScheduledAgent(
                     new ArticleAiService.ScheduledAgentRequest(task.getAccountId(), task.getCreatedBy(),
-                            task.getCoverAssetId(), task.getTimezone(), task.getOutputMode(), task.getAiPrompt(), task.getSkillId()));
+                            task.getCoverAssetId(), task.getTimezone(), task.getOutputMode(), task.getAiPrompt(),
+                            task.getSkillId(), task.getClasspathResources()));
             ScheduledArticleTools.Draft draft = result.draft();
             ArticleService.ArticleRequest request = new ArticleService.ArticleRequest(task.getAccountId(),
                     draft.title(), draft.author(), draft.digest(), draft.contentHtml(),
-                    draft.coverAssetId(), null, draft.sourceUrl(), null, task.getSkillId());
+                    draft.coverAssetId(), null, draft.sourceUrl(), null, task.getSkillId(), task.getClasspathResources());
             Article article = articleService.createForTask(request, task.getCreatedBy());
             run.setArticleId(article.getId());
             run.setGeneratedCount(1);

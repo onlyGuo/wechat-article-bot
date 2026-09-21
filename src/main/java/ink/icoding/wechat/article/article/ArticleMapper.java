@@ -32,6 +32,7 @@ public interface ArticleMapper extends SmartMapper<Article> {
                 || article.getRevision() == null || article.getRevision() != expectedRevision) return 0;
         article.setAccountId(changes.getAccountId());
         article.setSkillId(changes.getSkillId());
+        article.setClasspathResources(changes.getClasspathResources());
         article.setTitle(changes.getTitle());
         article.setAuthor(changes.getAuthor());
         article.setDigest(changes.getDigest());

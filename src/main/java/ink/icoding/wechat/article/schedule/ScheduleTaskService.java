@@ -81,8 +81,12 @@ public class ScheduleTaskService {
         if (!CronExpression.isValidExpression(request.cronExpression())) throw new BusinessException("Cron 表达式无效");
         task.setName(request.name());
         task.setAccountId(request.accountId());
-        if (!java.util.Objects.equals(task.getSkillId(), request.skillId())) skillService.validateSelection(request.skillId());
+        if (!java.util.Objects.equals(task.getSkillId(), request.skillId())
+                || !java.util.Objects.equals(task.getClasspathResources(), request.classpathResources())) {
+            skillService.validateSelection(request.skillId(), request.classpathResources());
+        }
         task.setSkillId(request.skillId());
+        task.setClasspathResources(request.classpathResources());
         task.setCoverAssetId(request.coverAssetId());
         task.setCronExpression(request.cronExpression());
         task.setTimezone(request.timezone() == null ? "Asia/Shanghai" : request.timezone());
@@ -115,5 +119,5 @@ public class ScheduleTaskService {
 
     public record TaskRequest(@NotBlank String name, Long accountId, Long coverAssetId, @NotBlank String cronExpression,
                               String timezone, @NotBlank String aiPrompt,
-                              String outputMode, Boolean enabled, Long skillId) {}
+                              String outputMode, Boolean enabled, Long skillId, String classpathResources) {}
 }

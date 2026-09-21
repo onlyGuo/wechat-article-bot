@@ -16,6 +16,11 @@ public class ArticleSkill extends PO {
     private String name;
     @TableField(length = 1000) private String description;
     @TableField(columnType = "MEDIUMTEXT") private String content;
+    @TableField(value = "classpath_resources", length = 500) private String classpathResources;
+    @TableField(columnType = "MEDIUMTEXT") private String previewHtml;
+    @TableField(length = 20) private String previewStatus;
+    @TableField(length = 2000) private String previewError;
+    private LocalDateTime previewUpdatedAt;
     private Boolean isDefault;
     private Boolean deleted;
     private LocalDateTime createdAt;

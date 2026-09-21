@@ -5,6 +5,7 @@ import ink.icoding.llm.core.tool.Tool;
 import ink.icoding.llm.core.tool.ToolParam;
 import ink.icoding.llm.core.tool.annotations.Param;
 import ink.icoding.llm.core.tool.annotations.ToolInfo;
+import ink.icoding.wechat.article.article.ArticleContentPolicy;
 import lombok.Data;
 
 import java.util.List;
@@ -52,6 +53,7 @@ public final class ScheduledArticleTools {
             if (param.getDigest() != null && param.getDigest().length() > 120) {
                 throw new IllegalArgumentException("文章摘要不能超过120字");
             }
+            ArticleContentPolicy.requireInlineStyles(param.getContentHtml());
             title = param.getTitle().trim();
             author = blankToNull(param.getAuthor());
             digest = blankToNull(param.getDigest());
@@ -101,7 +103,7 @@ public final class ScheduledArticleTools {
         @Param(required = false, description = "读取草稿的原因") private String reason;
     }
 
-    @ToolInfo(name = "save_article_draft", description = "把完整文章保存到本次任务工作区。研究和整理完成后必须调用；再次调用会原子覆盖上一版草稿。正文结构与样式由所选Skill及任务要求决定，支持任意非可执行HTML和CSS；可引用素材工具返回的publicUrl插入图片。")
+    @ToolInfo(name = "save_article_draft", description = "把完整文章保存到本次任务工作区。所有样式必须直接写在对应元素的style属性中，禁止style标签、CSS选择器、外部CSS、class属性和div元素，原本使用div的内容改用section；可引用素材工具返回的publicUrl插入图片。")
     public static class SaveDraftTool implements Tool<SaveDraftParam> {
         private final DraftState state;
         public SaveDraftTool(DraftState state) { this.state = state; }
@@ -113,7 +115,7 @@ public final class ScheduledArticleTools {
         @Param(description = "完整文章标题，最多64字") private String title;
         @Param(required = false, description = "文章作者") private String author;
         @Param(required = false, description = "文章摘要，最多120字") private String digest;
-        @Param(description = "完整文章正文HTML；按所选Skill及任务要求自由组织结构与CSS样式") private String contentHtml;
+        @Param(description = "完整文章正文HTML；样式只能逐元素写入style属性，不得包含style标签、CSS选择器、外部CSS、class属性或div元素，原本使用div的内容改用section") private String contentHtml;
         @Param(required = false, description = "最主要的参考来源URL；多个来源应在正文末尾列出") private String sourceUrl;
     }
 

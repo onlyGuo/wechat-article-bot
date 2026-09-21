@@ -10,22 +10,31 @@ import java.util.List;
 @RequestMapping("/api/skills")
 public class ArticleSkillController {
     private final ArticleSkillService service;
-    public ArticleSkillController(ArticleSkillService service) { this.service = service; }
-    @GetMapping public ApiResponse<List<ArticleSkill>> list() { return ApiResponse.ok(service.list()); }
+    private final ArticleSkillPreviewService previewService;
+    public ArticleSkillController(ArticleSkillService service, ArticleSkillPreviewService previewService) {
+        this.service = service;
+        this.previewService = previewService;
+    }
+    @GetMapping public ApiResponse<List<ArticleSkillService.SkillView>> list() { return ApiResponse.ok(service.list()); }
     @GetMapping("/{id}") public ApiResponse<ArticleSkill> get(@PathVariable Long id) { return ApiResponse.ok(service.required(id)); }
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR','EDITOR')")
     public ApiResponse<ArticleSkill> create(@Valid @RequestBody ArticleSkillService.SkillRequest request) {
-        return ApiResponse.ok(service.create(request));
+        ArticleSkill skill = service.create(request);
+        return ApiResponse.ok(previewService.generate(skill.getId()));
     }
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR','EDITOR')")
     public ApiResponse<ArticleSkill> update(@PathVariable Long id, @Valid @RequestBody ArticleSkillService.SkillRequest request) {
-        return ApiResponse.ok(service.update(id, request));
+        ArticleSkill skill = service.update(id, request);
+        return ApiResponse.ok(previewService.generate(skill.getId()));
     }
-    @PostMapping("/{id}/default")
+    @PostMapping("/{id}/preview")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR','EDITOR')")
-    public ApiResponse<ArticleSkill> makeDefault(@PathVariable Long id) { return ApiResponse.ok(service.makeDefault(id)); }
+    public ApiResponse<ArticleSkill> regeneratePreview(@PathVariable Long id) {
+        service.required(id);
+        return ApiResponse.ok(previewService.generate(id));
+    }
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR','EDITOR')")
     public ApiResponse<Void> delete(@PathVariable Long id) { service.delete(id); return ApiResponse.ok(); }
