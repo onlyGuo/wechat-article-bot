@@ -7,8 +7,8 @@
 !.env.example
 **/.DS_Store
 **/node_modules
-webui/dist
-target
+target/*
+!target/article-bot-*.jar
 data
 *.log
 *.iml
