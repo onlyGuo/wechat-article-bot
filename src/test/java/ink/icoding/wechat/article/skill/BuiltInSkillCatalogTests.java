@@ -43,4 +43,19 @@ class BuiltInSkillCatalogTests {
             assertFalse(html.contains("<script"), resource + " 的示例不应包含脚本");
         }
     }
+
+    @Test
+    void readsBuiltInSkillsWhenThreadContextClassLoaderCannotSeeApplicationResources() {
+        Thread thread = Thread.currentThread();
+        ClassLoader original = thread.getContextClassLoader();
+        try {
+            thread.setContextClassLoader(new ClassLoader(null) {});
+            BuiltInSkillCatalog catalog = new BuiltInSkillCatalog();
+            assertEquals(19, catalog.list().size());
+            assertEquals("默认公众号风格",
+                    catalog.required(ArticleSkillService.DEFAULT_SKILL_CLASSPATH_RESOURCE).name());
+        } finally {
+            thread.setContextClassLoader(original);
+        }
+    }
 }

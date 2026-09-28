@@ -22,7 +22,9 @@ public class BuiltInSkillCatalog {
     private static final String RESOURCE_PATTERN = "classpath*:skills/*/prompt.md";
     private static final Pattern SAFE_RESOURCE = Pattern.compile("skills/[a-z0-9][a-z0-9-]{0,63}/prompt\\.md");
     private static final Pattern CHINESE_TEXT = Pattern.compile(".*[\\u4e00-\\u9fff].*");
-    private final PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+    private static final ClassLoader RESOURCE_CLASS_LOADER = BuiltInSkillCatalog.class.getClassLoader();
+    private final PathMatchingResourcePatternResolver resolver =
+            new PathMatchingResourcePatternResolver(RESOURCE_CLASS_LOADER);
 
     public List<BuiltInSkill> list() {
         try {
@@ -43,7 +45,7 @@ public class BuiltInSkillCatalog {
 
     public Optional<BuiltInSkill> find(String classpathResources) {
         if (classpathResources == null || !SAFE_RESOURCE.matcher(classpathResources).matches()) return Optional.empty();
-        ClassPathResource resource = new ClassPathResource(classpathResources);
+        ClassPathResource resource = new ClassPathResource(classpathResources, RESOURCE_CLASS_LOADER);
         if (!resource.exists()) return Optional.empty();
         try {
             return Optional.of(read(resource, classpathResources));
@@ -66,7 +68,7 @@ public class BuiltInSkillCatalog {
         String prompt = String.join("\n", lines.subList(2, lines.size())).trim();
         if (prompt.isBlank()) throw new IllegalStateException(classpathResources + " 缺少提示词正文");
         String examplePath = classpathResources.replace("/prompt.md", "/index.html");
-        ClassPathResource example = new ClassPathResource(examplePath);
+        ClassPathResource example = new ClassPathResource(examplePath, RESOURCE_CLASS_LOADER);
         if (!example.exists()) throw new IllegalStateException(examplePath + " 不存在");
         String exampleHtml = example.getContentAsString(StandardCharsets.UTF_8);
         return new BuiltInSkill(classpathResources, lines.get(0).trim(), lines.get(1).trim(), prompt, exampleHtml);
